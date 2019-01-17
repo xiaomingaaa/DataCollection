@@ -31,8 +31,28 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Comm, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\Comm.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Threading.Tasks, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Threading.Tasks.Extensions, Version=1.0.12.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop, Version=1.0.168.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
+    </Reference>
+    <Reference Include="Redis.Cache, Version=0.9.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Redis.Cache.0.9.2\lib\net\Redis.Cache.dll</HintPath>
+    </Reference>
+    <Reference Include="StackExchange.Redis, Version=1.0.297.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\StackExchange.Redis.1.0.297\lib\net45\StackExchange.Redis.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Net" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -44,11 +64,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BlackName.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="BlackName.Designer.cs">
+      <DependentUpon>BlackName.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controller\BlackNameController.cs" />
     <Compile Include="Controller\HandleXfDataController.cs" />
     <Compile Include="Controller\LocalConfigController.cs" />
+    <Compile Include="Controller\NetController.cs" />
     <Compile Include="Controller\RemoteConfigController.cs" />
+    <Compile Include="Controller\UploadController.cs" />
     <Compile Include="Entity\LocalConfigEntity.cs" />
+    <Compile Include="Entity\NetConfig.cs" />
     <Compile Include="Entity\RemoteConfigEntity.cs" />
+    <Compile Include="Entity\XfDataEntity.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -69,11 +100,24 @@
     <Compile Include="RemoteConfig.Designer.cs">
       <DependentUpon>RemoteConfig.cs</DependentUpon>
     </Compile>
+    <Compile Include="ShowXfData.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ShowXfData.Designer.cs">
+      <DependentUpon>ShowXfData.cs</DependentUpon>
+    </Compile>
     <Compile Include="Util\ConfigUtil.cs" />
+    <Compile Include="Util\EncryptionUtil.cs" />
     <Compile Include="Util\Log.cs" />
+    <Compile Include="Util\MachineCtro.cs" />
+    <Compile Include="Util\NetUtil.cs" />
     <Compile Include="Util\Readini.cs" />
+    <Compile Include="Util\RedisCacheHelper.cs" />
     <Compile Include="Util\SocketUtil.cs" />
     <Compile Include="Util\SQLHepler.cs" />
+    <EmbeddedResource Include="BlackName.resx">
+      <DependentUpon>BlackName.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
@@ -92,6 +136,10 @@
     <EmbeddedResource Include="RemoteConfig.resx">
       <DependentUpon>RemoteConfig.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="ShowXfData.resx">
+      <DependentUpon>ShowXfData.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -106,4 +154,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets" Condition="Exists('..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets')" />
+  <Target Name="EnsureBclBuildImported" BeforeTargets="BeforeBuild" Condition="'$(BclBuildImported)' == ''">
+    <Error Condition="!Exists('..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets')" Text="This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=317567." HelpKeyword="BCLBUILD2001" />
+    <Error Condition="Exists('..\packages\Microsoft.Bcl.Build.1.0.14\tools\Microsoft.Bcl.Build.targets')" Text="The build restored NuGet packages. Build the project again to include these packages in the build. For more information, see http://go.microsoft.com/fwlink/?LinkID=317568." HelpKeyword="BCLBUILD2002" />
+  </Target>
 </Project>

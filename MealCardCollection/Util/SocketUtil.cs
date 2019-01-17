@@ -26,6 +26,8 @@ namespace MealCardCollection.Util
             iPEndPoint = new IPEndPoint(IPAddress.Parse(ipaddr), port);
             client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             //Console.WriteLine("连接。。。。");
+            //设置2s后就有反馈不会导致因为socket长时间链接问题
+            client.SetSocketOption(SocketOptionLevel.Socket,SocketOptionName.ReceiveTimeout,2000);
             try
             {
 
@@ -81,7 +83,22 @@ namespace MealCardCollection.Util
             }
             return recvs;
         }
-
+        /// <summary>
+        /// 由于自带的超时时间无法改变太长，使用异步链接的方式判断超时
+        /// </summary>
+        /// <returns></returns>
+        public bool TestConnect()
+        {
+            iPEndPoint = new IPEndPoint(IPAddress.Parse(ipaddr), port);
+            client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            IAsyncResult connResult = client.BeginConnect(ipaddr,port,null,null);
+            connResult.AsyncWaitHandle.WaitOne(2000,true);
+            if (connResult.IsCompleted)
+            {
+                return true;
+            }
+            return false;
+        }
 
     }
 }

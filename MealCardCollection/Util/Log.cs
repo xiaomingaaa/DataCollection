@@ -47,5 +47,23 @@ namespace MealCardCollection.Util
 
             }
         }
+        public static void WriteIgnoreData(string str)
+        {
+            string log_path = AppDomain.CurrentDomain.BaseDirectory + "Logs" + "/IgnoreXfData_" + DateTime.Now.ToString("yyyy-MM-dd") + ".txt";
+            try
+            {
+                str = DateTime.Now + "\r\n" + str;
+                byte[] bytes = Encoding.Default.GetBytes(str + "\r\n");
+                FileStream fileStream = File.OpenWrite(log_path);
+                fileStream.Position = fileStream.Length;
+                fileStream.Write(bytes, 0, bytes.Length);
+                fileStream.Flush();
+                fileStream.Close();
+            }
+            catch
+            {
+
+            }
+        }
     }
 }

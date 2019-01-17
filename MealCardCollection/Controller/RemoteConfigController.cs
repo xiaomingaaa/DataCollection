@@ -35,7 +35,7 @@ namespace MealCardCollection.Controller
             SocketUtil socket = new SocketUtil(remote.Remoteip,Convert.ToInt32(remote.Remoteport));
             try
             {
-                if (socket.EstablishConnect())
+                if (socket.TestConnect())
                 {
                     socket.DisConnected();
                     return true;

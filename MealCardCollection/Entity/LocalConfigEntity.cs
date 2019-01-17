@@ -32,7 +32,7 @@ namespace MealCardCollection.Entity
         }
         public override string ToString()
         {
-            string sqlConn = string.Format("server={0};database={1};user={2};pwd={3}",Server,Database,Username,Password);
+            string sqlConn = string.Format(@"server={0};database={1};user={2};pwd={3}",Server,Database,Username,Password);
             return sqlConn;
         }
     }

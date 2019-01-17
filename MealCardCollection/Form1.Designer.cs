@@ -28,8 +28,8 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
-            this.listView1 = new System.Windows.Forms.ListView();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -39,26 +39,14 @@
             this.挂失名单ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.消费上传统计ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.系统说明ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.machip = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.dumpcount = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.dumptime = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.listView1 = new System.Windows.Forms.ListView();
+            this.ipaddr = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.macno = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.state = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.notifyIcon1 = new System.Windows.Forms.NotifyIcon(this.components);
             this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // listView1
-            // 
-            this.listView1.BackColor = System.Drawing.SystemColors.Menu;
-            this.listView1.BackgroundImageTiled = true;
-            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.machip,
-            this.dumpcount,
-            this.dumptime});
-            this.listView1.Location = new System.Drawing.Point(0, 28);
-            this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(370, 526);
-            this.listView1.TabIndex = 3;
-            this.listView1.UseCompatibleStateImageBehavior = false;
-            this.listView1.View = System.Windows.Forms.View.Details;
             // 
             // toolStrip1
             // 
@@ -70,6 +58,7 @@
             this.toolStripSplitButton1});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
             this.toolStrip1.Size = new System.Drawing.Size(370, 25);
             this.toolStrip1.TabIndex = 4;
             this.toolStrip1.Text = "toolStrip1";
@@ -120,49 +109,90 @@
             // 挂失名单ToolStripMenuItem
             // 
             this.挂失名单ToolStripMenuItem.Name = "挂失名单ToolStripMenuItem";
-            this.挂失名单ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.挂失名单ToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
             this.挂失名单ToolStripMenuItem.Text = "挂失名单";
+            this.挂失名单ToolStripMenuItem.Click += new System.EventHandler(this.挂失名单ToolStripMenuItem_Click);
             // 
             // 消费上传统计ToolStripMenuItem
             // 
             this.消费上传统计ToolStripMenuItem.Name = "消费上传统计ToolStripMenuItem";
-            this.消费上传统计ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.消费上传统计ToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
             this.消费上传统计ToolStripMenuItem.Text = "消费上传统计";
             // 
             // 系统说明ToolStripMenuItem
             // 
             this.系统说明ToolStripMenuItem.Name = "系统说明ToolStripMenuItem";
-            this.系统说明ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.系统说明ToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
             this.系统说明ToolStripMenuItem.Text = "系统说明";
             // 
-            // machip
+            // listView1
             // 
-            this.machip.Text = "机器IP地址";
-            this.machip.Width = 120;
+            this.listView1.BackColor = System.Drawing.SystemColors.Menu;
+            this.listView1.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.listView1.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.ipaddr,
+            this.macno,
+            this.state});
+            this.listView1.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.listView1.Font = new System.Drawing.Font("宋体", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.listView1.GridLines = true;
+            this.listView1.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.listView1.HideSelection = false;
+            this.listView1.HoverSelection = true;
+            this.listView1.ImeMode = System.Windows.Forms.ImeMode.AlphaFull;
+            this.listView1.Location = new System.Drawing.Point(0, 28);
+            this.listView1.MultiSelect = false;
+            this.listView1.Name = "listView1";
+            this.listView1.ShowItemToolTips = true;
+            this.listView1.Size = new System.Drawing.Size(370, 527);
+            this.listView1.Sorting = System.Windows.Forms.SortOrder.Ascending;
+            this.listView1.TabIndex = 5;
+            this.listView1.UseCompatibleStateImageBehavior = false;
+            this.listView1.View = System.Windows.Forms.View.Details;
             // 
-            // dumpcount
+            // ipaddr
             // 
-            this.dumpcount.Text = "心跳包";
-            this.dumpcount.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.dumpcount.Width = 120;
+            this.ipaddr.Text = "IP地址";
+            this.ipaddr.Width = 140;
             // 
-            // dumptime
+            // macno
             // 
-            this.dumptime.Text = "最晚心跳时间";
-            this.dumptime.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            this.dumptime.Width = 120;
+            this.macno.Text = "机号";
+            this.macno.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.macno.Width = 100;
+            // 
+            // state
+            // 
+            this.state.Text = "连接状态";
+            this.state.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.state.Width = 110;
+            // 
+            // timer1
+            // 
+            this.timer1.Enabled = true;
+            this.timer1.Interval = 2000;
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
+            // notifyIcon1
+            // 
+            this.notifyIcon1.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyIcon1.Icon")));
+            this.notifyIcon1.Text = "消费数据采集";
+            this.notifyIcon1.Visible = true;
+            this.notifyIcon1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseClick);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(370, 554);
-            this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.listView1);
+            this.Controls.Add(this.toolStrip1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximizeBox = false;
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "正梵餐卡采集系统";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
@@ -172,7 +202,6 @@
         }
 
         #endregion
-        private System.Windows.Forms.ListView listView1;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
@@ -182,9 +211,12 @@
         private System.Windows.Forms.ToolStripMenuItem 挂失名单ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem 消费上传统计ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem 系统说明ToolStripMenuItem;
-        private System.Windows.Forms.ColumnHeader machip;
-        private System.Windows.Forms.ColumnHeader dumpcount;
-        private System.Windows.Forms.ColumnHeader dumptime;
+        private System.Windows.Forms.ListView listView1;
+        private System.Windows.Forms.ColumnHeader ipaddr;
+        private System.Windows.Forms.ColumnHeader macno;
+        private System.Windows.Forms.ColumnHeader state;
+        private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.NotifyIcon notifyIcon1;
     }
 }
 

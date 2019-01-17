@@ -11,7 +11,7 @@ namespace MealCardCollection.Util
     /// </summary>
     class SQLHelper
     {
-        private static string sqlconstring = ConfigUtil.GetLocalConfig().ToString();
+        public static string sqlconstring = ConfigUtil.GetLocalConfig().ToString();
         #region 标准的SQL语句 
         //实现对数据库的增删改
         public static int Update(string sql)
@@ -282,7 +282,7 @@ namespace MealCardCollection.Util
                 catch (Exception e)
                 {
                     conn.Close();
-                    Log.WriteError("SQLHelper获取学生信息出现错误：" + e.Message);
+                    Log.WriteError("SQLHelper获取学生信息出现错误：" + e.Message+"链接："+sqlconstring);
                 }
                 return _dt;
             }
