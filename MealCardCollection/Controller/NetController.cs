@@ -19,7 +19,17 @@ namespace MealCardCollection.Controller
                 DataTable table = SQLHelper.GetAllResult(sqlText);
                 foreach (DataRow dr in table.Rows)
                 {
-                    NetConfig config = new NetConfig(dr["ipaddr"].ToString(), Convert.ToInt32(dr["macid"]));
+                    int macid = -1;
+                    if (dr["macid"] is DBNull)
+                    {
+                        macid = -1;
+                        
+                    }
+                    else
+                    {
+                        macid = Convert.ToInt32(dr["macid"]);
+                    }
+                    NetConfig config = new NetConfig(dr["ipaddr"].ToString(), macid);
                     list.Add(config);
                 }
             }

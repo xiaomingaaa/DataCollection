@@ -59,7 +59,7 @@
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
-            this.toolStrip1.Size = new System.Drawing.Size(370, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(381, 25);
             this.toolStrip1.TabIndex = 4;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -109,20 +109,21 @@
             // 挂失名单ToolStripMenuItem
             // 
             this.挂失名单ToolStripMenuItem.Name = "挂失名单ToolStripMenuItem";
-            this.挂失名单ToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
-            this.挂失名单ToolStripMenuItem.Text = "挂失名单";
+            this.挂失名单ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.挂失名单ToolStripMenuItem.Text = "机器状态";
             this.挂失名单ToolStripMenuItem.Click += new System.EventHandler(this.挂失名单ToolStripMenuItem_Click);
             // 
             // 消费上传统计ToolStripMenuItem
             // 
             this.消费上传统计ToolStripMenuItem.Name = "消费上传统计ToolStripMenuItem";
-            this.消费上传统计ToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
+            this.消费上传统计ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.消费上传统计ToolStripMenuItem.Text = "消费上传统计";
+            this.消费上传统计ToolStripMenuItem.Click += new System.EventHandler(this.消费上传统计ToolStripMenuItem_Click);
             // 
             // 系统说明ToolStripMenuItem
             // 
             this.系统说明ToolStripMenuItem.Name = "系统说明ToolStripMenuItem";
-            this.系统说明ToolStripMenuItem.Size = new System.Drawing.Size(148, 22);
+            this.系统说明ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.系统说明ToolStripMenuItem.Text = "系统说明";
             // 
             // listView1
@@ -144,7 +145,7 @@
             this.listView1.MultiSelect = false;
             this.listView1.Name = "listView1";
             this.listView1.ShowItemToolTips = true;
-            this.listView1.Size = new System.Drawing.Size(370, 527);
+            this.listView1.Size = new System.Drawing.Size(381, 523);
             this.listView1.Sorting = System.Windows.Forms.SortOrder.Ascending;
             this.listView1.TabIndex = 5;
             this.listView1.UseCompatibleStateImageBehavior = false;
@@ -179,12 +180,13 @@
             this.notifyIcon1.Text = "消费数据采集";
             this.notifyIcon1.Visible = true;
             this.notifyIcon1.MouseClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseClick);
+            this.notifyIcon1.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.notifyIcon1_MouseDoubleClick);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(370, 554);
+            this.ClientSize = new System.Drawing.Size(381, 554);
             this.Controls.Add(this.listView1);
             this.Controls.Add(this.toolStrip1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
@@ -192,8 +194,10 @@
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "正梵餐卡采集系统";
+            this.MinimumSizeChanged += new System.EventHandler(this.Form1_MinimumSizeChanged);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
+            this.SizeChanged += new System.EventHandler(this.Form1_SizeChanged);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);

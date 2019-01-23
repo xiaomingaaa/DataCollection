@@ -16,19 +16,22 @@ namespace MealCardCollection.Entity
         private string username;
         private string password;
         private string machport;
-
+        private string localIP;
         public string Server { get => server; set => server = value; }
         public string Database { get => database; set => database = value; }
         public string Username { get => username; set => username = value; }
         public string Password { get => password; set => password = value; }
         public string Machport { get => machport; set => machport = value; }
-        public LocalConfigEntity(string server,string database,string username,string password,string machport)
+        public string LocalIP { get => localIP; set => localIP = value; }
+
+        public LocalConfigEntity(string server,string database,string username,string password,string machport,string localip)
         {
             Server = server;
             Database = database;
             Username = username;
             Password = password;
             Machport = machport;
+            LocalIP = localip;
         }
         public override string ToString()
         {

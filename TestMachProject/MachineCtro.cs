@@ -21,7 +21,6 @@ namespace TestMachProject
         #region 内部变量
         /// <summary>
         /// 帧头标志SYN(固定值为0x3AA3)
-        /// 修改: csx 2017-04022
         /// </summary>
         private string m_syn = "3AA3";
 
@@ -56,7 +55,7 @@ namespace TestMachProject
             public int len;
             public string type;
         }
-        private RecordField[] recordfield = new RecordField[60];
+        private RecordField[] recordfield = new RecordField[70];
         private struct ProtocolField
         {
             public int typeno;
@@ -75,6 +74,8 @@ namespace TestMachProject
         Thread thread;
         volatile bool _keepReading = false;
         private int commtype = 0;//通讯方式：0为UDP；1为TCP/IP；2为串口
+
+        private List<TcpSocket> sockets = new List<TcpSocket>();//2017-06-25添加
 
         private byte[] photo;
         /// <summary>
@@ -122,6 +123,13 @@ namespace TestMachProject
             public string subdate;
             public int subbatch;
         }
+        /// <summary>
+        /// IC联动刷卡结果
+        /// <summary>
+        //public struct CardBlashResultIC
+        //{
+        //    public int result;
+        //}
         /// <summary>
         /// 名单存储格式
         /// </summary>
@@ -252,7 +260,20 @@ namespace TestMachProject
                 len = alen;
             }
         }
+        public struct TcpSocket
+        {
+            public Socket socket;
+            public string ip;
+            public List<byte[]> received;
+            public List<byte[]> command;
+            public Thread thread;
+        }
+
+
         #endregion
+
+
+
         #region 初始化
         /// <summary>
         /// 创建一个本地默认端口的实例，端口号：10009
@@ -313,6 +334,10 @@ namespace TestMachProject
                     }
                     m_socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                     m_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
+                    uint IOC_IN = 0x80000000;
+                    uint IOC_VENDOR = 0x18000000;
+                    uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
+                    m_socket.IOControl((int)SIO_UDP_CONNRESET, new byte[] { Convert.ToByte(false) }, null);
                     m_socket.Bind(m_localep);
                     StartReceive();
                     break;
@@ -395,53 +420,53 @@ namespace TestMachProject
             recordfield[24].typeno = 136;//0x82—0x85,0x88:	返回16进制卡号长度(2—5,8字节)。
             recordfield[24].len = 8;
             recordfield[24].type = "cardx8";
-            recordfield[25].typeno = 164;//返回工号(长度1—16字节)。
+            recordfield[25].typeno = 144;//返回工号(长度1—16字节)。
             recordfield[25].len = 1;
             recordfield[25].type = "empid01";
-            recordfield[26].typeno = 165;//返回工号(长度1—16字节)。
-            recordfield[26].len = 1;
+            recordfield[26].typeno = 145;//返回工号(长度1—16字节)。
+            recordfield[26].len = 2;
             recordfield[26].type = "empid02";
-            recordfield[27].typeno = 166;//返回工号(长度1—16字节)。
-            recordfield[27].len = 1;
+            recordfield[27].typeno = 146;//返回工号(长度1—16字节)。
+            recordfield[27].len = 3;
             recordfield[27].type = "empid03";
-            recordfield[28].typeno = 167;//返回工号(长度1—16字节)。
-            recordfield[28].len = 1;
+            recordfield[28].typeno = 147;//返回工号(长度1—16字节)。
+            recordfield[28].len = 4;
             recordfield[28].type = "empid04";
-            recordfield[29].typeno = 168;//返回工号(长度1—16字节)。
-            recordfield[29].len = 1;
+            recordfield[29].typeno = 148;//返回工号(长度1—16字节)。
+            recordfield[29].len = 5;
             recordfield[29].type = "empid05";
-            recordfield[30].typeno = 169;//返回工号(长度1—16字节)。
-            recordfield[30].len = 1;
+            recordfield[30].typeno = 149;//返回工号(长度1—16字节)。
+            recordfield[30].len = 6;
             recordfield[30].type = "empid06";
-            recordfield[31].typeno = 170;//返回工号(长度1—16字节)。
-            recordfield[31].len = 1;
+            recordfield[31].typeno = 150;//返回工号(长度1—16字节)。
+            recordfield[31].len = 7;
             recordfield[31].type = "empid07";
-            recordfield[32].typeno = 171;//返回工号(长度1—16字节)。
-            recordfield[32].len = 1;
+            recordfield[32].typeno = 151;//返回工号(长度1—16字节)。
+            recordfield[32].len = 8;
             recordfield[32].type = "empid08";
-            recordfield[33].typeno = 172;//返回工号(长度1—16字节)。
-            recordfield[33].len = 1;
+            recordfield[33].typeno = 152;//返回工号(长度1—16字节)。
+            recordfield[33].len = 9;
             recordfield[33].type = "empid09";
-            recordfield[34].typeno = 173;//返回工号(长度1—16字节)。
-            recordfield[34].len = 1;
+            recordfield[34].typeno = 153;//返回工号(长度1—16字节)。
+            recordfield[34].len = 10;
             recordfield[34].type = "empid10";
-            recordfield[35].typeno = 174;//返回工号(长度1—16字节)。
-            recordfield[35].len = 1;
+            recordfield[35].typeno = 154;//返回工号(长度1—16字节)。
+            recordfield[35].len = 11;
             recordfield[35].type = "empid11";
-            recordfield[36].typeno = 175;//返回工号(长度1—16字节)。
-            recordfield[36].len = 1;
+            recordfield[36].typeno = 155;//返回工号(长度1—16字节)。
+            recordfield[36].len = 12;
             recordfield[36].type = "empid12";
-            recordfield[37].typeno = 176;//返回工号(长度1—16字节)。
-            recordfield[37].len = 1;
+            recordfield[37].typeno = 156;//返回工号(长度1—16字节)。
+            recordfield[37].len = 13;
             recordfield[37].type = "empid13";
-            recordfield[38].typeno = 177;//返回工号(长度1—16字节)。
-            recordfield[38].len = 1;
+            recordfield[38].typeno = 157;//返回工号(长度1—16字节)。
+            recordfield[38].len = 14;
             recordfield[38].type = "empid14";
-            recordfield[39].typeno = 178;//返回工号(长度1—16字节)。
-            recordfield[39].len = 1;
+            recordfield[39].typeno = 158;//返回工号(长度1—16字节)。
+            recordfield[39].len = 15;
             recordfield[39].type = "empid15";
-            recordfield[40].typeno = 179;//返回工号(长度1—16字节)。
-            recordfield[40].len = 1;
+            recordfield[40].typeno = 159;//返回工号(长度1—16字节)。
+            recordfield[40].len = 16;
             recordfield[40].type = "empid16";
 
             recordfield[41].typeno = 88;//返回机器记录号(长度4字节)。
@@ -480,6 +505,42 @@ namespace TestMachProject
             recordfield[52].typeno = 15;//门动作的状态（1字节）
             recordfield[52].len = 1;
             recordfield[52].type = "workstatus";
+            recordfield[53].typeno = 36;//存重量值(8个字节，ASCII码，带小数点，单位为公斤) 如：“1234.678”
+            recordfield[53].len = 8;
+            recordfield[53].type = "carryvalue";
+            recordfield[54].typeno = 37;//称重物品编号(2字节)
+            recordfield[54].len = 2;
+            recordfield[54].type = "itemno";
+            recordfield[55].typeno = 38;//时间段消费次数，1字节，HEX
+            recordfield[55].len = 1;
+            recordfield[55].type = "xftimes";
+            recordfield[56].typeno = 39;//1字节性别：0x30女，0x31男
+            recordfield[56].len = 1;
+            recordfield[56].type = "sex";
+            recordfield[57].typeno = 40;//2字节民族：ASCII码例：汉族0x3130
+            recordfield[57].len = 2;
+            recordfield[57].type = "nation";
+            recordfield[58].typeno = 41;//8字节出生日期ASCII码
+            recordfield[58].len = 8;
+            recordfield[58].type = "birthday";
+            recordfield[59].typeno = 42;//70字节汉字住址，后补0
+            recordfield[59].len = 70;
+            recordfield[59].type = "famiaddr";
+            recordfield[60].typeno = 43;//18字节身份证号ASCII码
+            recordfield[60].len = 18;
+            recordfield[60].type = "idcardno";
+            recordfield[61].typeno = 44;//30字节签发机关
+            recordfield[61].len = 30;
+            recordfield[61].type = "certorg";
+            recordfield[62].typeno = 45;//有效起始日期8字节ASCII
+            recordfield[62].len = 8;
+            recordfield[62].type = "startdt";
+            recordfield[63].typeno = 46;//有效截止日期8字节ASCII
+            recordfield[63].len = 8;
+            recordfield[63].type = "enddt";
+            recordfield[64].typeno = 47;//姓名16字节
+            recordfield[64].len = 16;
+            recordfield[64].type = "empname";
             //事件名称(8)说明：
             //0x00: 未定义，不可使用
             //读头事件：0x01—0x1F
@@ -646,16 +707,21 @@ namespace TestMachProject
 
         public void Close()
         {
+            if (m_socket != null && m_socket.Connected)
+            {
+                m_socket.Shutdown(SocketShutdown.Both);
+            }
+            if (m_socket != null) m_socket.Close();
             if (_receiveThread != null)
             {
                 _receiveThread.Abort();
                 _receiveThread = null;
             }
-            if (m_socket != null) m_socket.Close();
         }
         public List<int> bufferlen = new List<int>();
         public List<byte[]> savebuffer = new List<byte[]>();
-
+        //CardBlashResult cbr = CardBlashed(ep.Address, type, flowno, cardno, amount, dealtype);
+        // CardBlashResult ret = CardBlashedIC(ep.Address, ref parms);
         #region 内部函数
         private void StartReading()
         {
@@ -702,6 +768,145 @@ namespace TestMachProject
                 }
             }
         }
+
+
+
+        // 2017-06-25 新增TCP协议   star 
+        private void StartListen()
+        {
+            if (_receiveThread == null)
+            {
+                _receiveThread = new Thread(MainListen);
+                _receiveThread.Start();
+            }
+            else
+            {
+                _receiveThread.Abort();
+                _receiveThread = null;
+                _receiveThread = new Thread(MainListen);
+                _receiveThread.Start();
+            }
+        }
+        private void MainListen()
+        {
+            if (m_local == null)
+            {
+                m_local = new IPEndPoint(IPAddress.Parse(GetLocalIp()), m_port);
+                m_localep = new IPEndPoint(IPAddress.Parse(GetLocalIp()), m_port) as EndPoint;
+            }
+            //m_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            //m_socket.Bind(m_localep);
+            //m_socket.Listen(100000);
+            TcpListener tcpl = new TcpListener(m_local.Address, m_port);
+            tcpl.Start();
+            while (true)
+            {
+                try
+                {
+                    // 得到包含客户端信息的套接字
+                    //Socket client = m_socket.Accept();
+                    Socket client = tcpl.AcceptSocket();
+                    byte[] buffer = new byte[256];
+                    byte[] macno = new byte[2];
+                    int len = client.Receive(buffer);
+                    Array.Copy(buffer, 6, macno, 0, 2);
+                    if (MachineFinded != null)
+                    {
+                        MachineFinded(client.RemoteEndPoint.ToString().Split(':')[0] + "|" + client.RemoteEndPoint.ToString().Split(':')[1] + ":" + byteTostring(macno));
+                    }
+                    bool isnew = true;
+                    string ip = client.RemoteEndPoint.ToString();
+                    for (int i = 0; i < sockets.Count; i++)
+                    {
+                        if (sockets[i].ip == ip)
+                        {
+                            isnew = false;
+                            break;
+                        }
+                    }
+                    if (isnew)
+                    {
+                        //把ClientThread 类的ClientService方法委托给线程
+                        Thread newthread = new Thread(Listen);
+                        TcpSocket socket = new TcpSocket();
+                        socket.socket = client;
+                        socket.ip = ip;
+                        socket.thread = newthread;
+                        socket.received = new List<byte[]>();
+                        socket.command = new List<byte[]>();
+                        sockets.Add(socket);
+                        // 启动消息服务线程
+                        newthread.Start(client);
+                    }
+                    SynBuffer(buffer, new IPEndPoint(IPAddress.Parse(client.RemoteEndPoint.ToString().Split(':')[0]), int.Parse(client.RemoteEndPoint.ToString().Split(':')[1])), len);
+                }
+                catch (Exception e) { string s = e.Message; }
+                Thread.Sleep(100);
+            }
+        }
+        private void Listen(object o)
+        {
+            Socket server = o as Socket;
+            try
+            {
+                while (true)
+                {
+                    byte[] buffer = new byte[2048];
+                    int len;
+                    len = server.Receive(buffer);
+                    if (len > 0) SynBuffer(buffer, new IPEndPoint(IPAddress.Parse(server.RemoteEndPoint.ToString().Split(':')[0]), int.Parse(server.RemoteEndPoint.ToString().Split(':')[1])), len);
+                    foreach (TcpSocket ts in sockets)
+                    {
+                        if (ts.ip == server.RemoteEndPoint.ToString())
+                        {
+                            DateTime start = DateTime.Now;
+                            while (DateTime.Compare(start.AddMilliseconds(100), DateTime.Now) > 0)
+                            {
+                                if (ts.command.Count > 0)
+                                {
+                                    foreach (byte[] command in ts.command)
+                                    {
+                                        server.Send(command);
+                                        ts.command.Remove(command);
+                                    }
+                                    break;
+                                }
+                                Thread.Sleep(10);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ReceivedError != null)
+                    ReceivedError(ex.Message);
+            }
+        }
+        private void DestroySocket(Socket socket)
+        {
+            if (socket.Connected)
+            {
+                socket.Shutdown(SocketShutdown.Both);
+            }
+            socket.Close();
+        }
+
+
+        //   end
+
+
+
+
+
+
+
+
+
+
+
+
+
         private void StartReceive()
         {
             if (_receiveThread == null)
@@ -717,13 +922,96 @@ namespace TestMachProject
                 _receiveThread.Start();
             }
         }
-        private void SendData(byte[] data, string remote)
+        private delegate void mSynBuffer(byte[] buffer, EndPoint remoteEP, int len);
+
+
+        private void Receive()
         {
-            int len = 0;
+
+            while (true)
+            {
+                try
+                {
+                    byte[] buffer = new byte[1024];
+                    EndPoint remoteEP = (EndPoint)(new IPEndPoint(IPAddress.Any, 8005));
+                    int len;
+                    len = m_socket.ReceiveFrom(buffer, ref remoteEP);
+                    mSynBuffer m1 = new mSynBuffer(SynBuffer);
+                    m1.BeginInvoke(buffer, remoteEP, len, null, null);
+                    // SynBuffer(buffer, remoteEP, len);
+                }
+                catch (Exception ex)
+                {
+                    if (ReceivedError != null)
+                        ReceivedError(ex.Message);
+                }
+            }
+
+        }
+        private void SynBuffer(byte[] buffer, EndPoint remoteEP, int len)
+        {
+            if (buffer[2] != 0x00 || buffer[3] != 0x00)
+            {
+                byte[] data = new byte[4], macno = new byte[2], mport = new byte[2];
+                string strdata;
+                Array.Copy(buffer, 17, data, 0, 4);
+                Array.Copy(buffer, 2, macno, 0, 2);
+                Array.Copy(buffer, 29, mport, 0, 2);
+                strdata = GetIP(data) + "|" + byteToint(mport).ToString() + ":" + byteTostring(macno);
+                if (MachineFinded != null)
+                {
+                    MachineFinded(strdata);
+                }
+            }
+            else
+            {
+                if (buffer[4] == 0x00 && buffer[5] == 0x01)
+                {
+                    MonitorParm mp = new MonitorParm(buffer, (IPEndPoint)remoteEP, len);
+                    Thread tmonitor = new Thread(MonitorX);
+                    tmonitor.Start(mp);
+                    //MonitorX(buffer, (IPEndPoint)remoteEP, len);
+                }
+                else
+                {
+                    if (buffer[2] == 0x00 && buffer[3] == 0x00 && buffer[10] == 0x09)
+                    {
+                        //Monitor(buffer, (IPEndPoint)remoteEP, len);
+                        MonitorParm mp = new MonitorParm(buffer, (IPEndPoint)remoteEP, len);
+                        Thread tmonitor = new Thread(Monitor);
+                        tmonitor.Start(mp);
+                    }
+                    else
+                    {
+                        savebuffer.Add(buffer);
+                        bufferlen.Add(len);
+                    }
+                }
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+        public void SendData(byte[] data, string remote)
+        {
             switch (commtype)
             {
                 case 1://TCP/IP
-
+                    foreach (TcpSocket soc in sockets)
+                    {
+                        if (soc.ip.Split(':')[0] == remote.Split('|')[0])
+                        {
+                            soc.command.Add(data);
+                        }
+                    }
                     break;
                 case 2://串口
                     if (serialPort.IsOpen)
@@ -731,7 +1019,7 @@ namespace TestMachProject
                     break;
                 default:
                     if (remote.Split('|').Length > 1)
-                     len = m_socket.SendTo(data, new IPEndPoint(IPAddress.Parse(remote.Split('|')[0]), int.Parse(remote.Split('|')[1])));
+                        m_socket.SendTo(data, new IPEndPoint(IPAddress.Parse(remote.Split('|')[0]), int.Parse(remote.Split('|')[1])));
                     else
                         m_socket.SendTo(data, new IPEndPoint(IPAddress.Parse(remote), m_mport));
                     break;
@@ -739,65 +1027,65 @@ namespace TestMachProject
         }
         private void SendData(byte[] data, IPAddress remoteIP, int port)
         {
-            m_socket.SendTo(data, new IPEndPoint(remoteIP, port));
+            SendData(data, remoteIP.ToString() + "|" + port.ToString());
         }
-        private void Receive()
-        {
-            try
-            {
-                while (true)
-                {
-                    byte[] buffer = new byte[2048];
-                    int len;
-                    EndPoint remoteEP = (EndPoint)(new IPEndPoint(IPAddress.Any, 0));
-                    len = m_socket.ReceiveFrom(buffer, ref remoteEP);
-                    if (buffer[2] != 0x00 || buffer[3] != 0x00)
-                    {
-                        byte[] data = new byte[4], macno = new byte[2], mport = new byte[2];
-                        string strdata;
-                        Array.Copy(buffer, 17, data, 0, 4);
-                        Array.Copy(buffer, 2, macno, 0, 2);
-                        Array.Copy(buffer, 29, mport, 0, 2);
-                        strdata = GetIP(data) + "|" + byteToint(mport).ToString() + ":" + byteTostring(macno);
-                        if (MachineFinded != null)
-                        {
-                            MachineFinded(strdata);
-                        }
-                    }
-                    else
-                    {
-                        if (buffer[4] == 0x00 && buffer[5] == 0x01)
-                        {
-                            MonitorParm mp = new MonitorParm(buffer, (IPEndPoint)remoteEP, len);
-                            Thread tmonitor = new Thread(MonitorX);
-                            tmonitor.Start(mp);
-                            //MonitorX(buffer, (IPEndPoint)remoteEP, len);
-                        }
-                        else
-                        {
-                            if (buffer[2] == 0x00 && buffer[3] == 0x00 && buffer[10] == 0x09)
-                            {
-                                //Monitor(buffer, (IPEndPoint)remoteEP, len);
-                                MonitorParm mp = new MonitorParm(buffer, (IPEndPoint)remoteEP, len);
-                                Thread tmonitor = new Thread(Monitor);
-                                tmonitor.Start(mp);
-                            }
-                            else
-                            {
-                                savebuffer.Add(buffer);
-                                bufferlen.Add(len);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                if (ReceivedError != null)
-                    ReceivedError(ex.Message);
-            }
-        }
-        private int pullbuffer()
+        //private void Receive()  //2017-06-25注销
+        //{
+        //    try
+        //    {
+        //        byte[] buffer = new byte[2048];
+        //        EndPoint remoteEP = (EndPoint)(new IPEndPoint(IPAddress.Any, 0));
+        //        int len;
+        //        while (true)
+        //        {
+        //            len = m_socket.ReceiveFrom(buffer, ref remoteEP);
+        //            if (buffer[2] != 0x00 || buffer[3] != 0x00)
+        //            {
+        //                byte[] data = new byte[4], macno = new byte[2],mport=new byte[2];
+        //                string strdata;
+        //                Array.Copy(buffer, 17, data, 0, 4);
+        //                Array.Copy(buffer, 2, macno, 0, 2);
+        //                Array.Copy(buffer, 29, mport, 0, 2);
+        //                strdata = GetIP(data) +"|"+byteToint(mport).ToString()+ ":" + byteTostring(macno);
+        //                if (MachineFinded != null)
+        //                {
+        //                    MachineFinded(strdata);
+        //                }
+        //            }
+        //            else
+        //            {
+        //                if (buffer[4] == 0x00 && buffer[5] == 0x01)
+        //                {
+        //                    MonitorParm mp = new MonitorParm(buffer, (IPEndPoint)remoteEP, len);
+        //                    Thread tmonitor = new Thread(MonitorX);
+        //                    tmonitor.Start(mp);
+        //                    //MonitorX(buffer, (IPEndPoint)remoteEP, len);
+        //                }
+        //                else
+        //                {
+        //                    if (buffer[2] == 0x00 && buffer[3] == 0x00 && buffer[10] == 0x09)
+        //                    {
+        //                        //Monitor(buffer, (IPEndPoint)remoteEP, len);
+        //                        MonitorParm mp = new MonitorParm(buffer, (IPEndPoint)remoteEP, len);
+        //                        Thread tmonitor = new Thread(Monitor);
+        //                        tmonitor.Start(mp);
+        //                    }
+        //                    else
+        //                    {
+        //                        savebuffer.Add(buffer);
+        //                        bufferlen.Add(len);
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        if (ReceivedError != null)
+        //            ReceivedError(ex.Message);
+        //    }
+        //}
+        private int pullbuffer()     //这个方法在新的服务中取消   没有用
         {
             int pulled = 0;
             Thread.Sleep(100);
@@ -811,6 +1099,9 @@ namespace TestMachProject
             }
             return pulled;
         }
+
+
+
         private int GetFixSum(byte[] data)
         {
             int sum = 0;
@@ -945,18 +1236,9 @@ namespace TestMachProject
         }
         private string GetTime(byte[] datas)
         {
-            byte[] data = new byte[16];
-            Array.Copy(datas, 0, data, 0, 1);
-            Array.Copy(datas, 1, data, 2, 1);
-            Array.Copy(datas, 2, data, 4, 1);
-            Array.Copy(datas, 3, data, 6, 1);
-            Array.Copy(datas, 4, data, 8, 1);
-            Array.Copy(datas, 5, data, 10, 1);
-            Array.Copy(datas, 6, data, 12, 1);
-            Array.Copy(datas, 7, data, 14, 1);
-            string strTime = (BitConverter.ToInt16(data, 0) * 256 + BitConverter.ToInt16(data, 2)).ToString() + "-" + BitConverter.ToInt16(data, 4).ToString().PadLeft(2, '0') + "-"
-                + BitConverter.ToInt16(data, 6).ToString().PadLeft(2, '0') + " " + BitConverter.ToInt16(data, 8).ToString().PadLeft(2, '0') + ":" + BitConverter.ToInt16(data, 10).ToString().PadLeft(2, '0')
-                + ":" + BitConverter.ToInt16(data, 12).ToString().PadLeft(2, '0') + ",星期:" + BitConverter.ToInt16(data, 14).ToString();
+            string strTime = (datas[0] * 256 + datas[1]).ToString() + "-" + datas[2].ToString().PadLeft(2, '0') + "-"
+                + datas[3].ToString().PadLeft(2, '0') + " " + datas[4].ToString().PadLeft(2, '0') + ":" + datas[5].ToString().PadLeft(2, '0')
+                + ":" + datas[6].ToString().PadLeft(2, '0') + ",星期:" + datas[7].ToString();
             return strTime;
         }
         private string GetByteTime()
@@ -1014,13 +1296,16 @@ namespace TestMachProject
         }
         private byte[] Getcommandline(string syn, string sierialNO, string slen, string command, string appdata)
         {
-            string commands = syn + "00000001" + sierialNO + slen + command + appdata;
+            string commands = syn + "0000000" + (sierialNO.Length > 4 ? "1" : "0") + sierialNO + slen + command + appdata;
             return stringTobyte(commands + getCRC16(commands));
         }
+
         private int GetReturn(string ip, byte[] command, int type, int sno, ref byte[] rdata)
         {
             SendData(command, ip.Split(':')[0]);
             DateTime start = DateTime.Now;
+            int diff = m_diff;
+            if (type == 0x0F && sno == 0x02) diff = 10;
             while (DateTime.Compare(start.AddSeconds(m_diff), DateTime.Now) > 0)
             {
                 try
@@ -1041,6 +1326,34 @@ namespace TestMachProject
             }
             return 0;
         }
+        private string getmacno(byte[] data)
+        {
+            int len = getaddrlength(data);
+            byte[] mac = new byte[len];
+            Array.Copy(data, 6, mac, 0, len);
+            string macno = "";
+            if (len > 4)
+                macno = byteTostring(mac);
+            else
+                macno = byteToint(mac).ToString("X2").PadLeft(len * 2, '0');
+            return macno;
+        }
+        private int getaddrlength(byte[] data)
+        {
+            switch (data[5])
+            {
+                case 1:
+                    return 8;
+                case 2:
+                    return 4;
+                default:
+                    return 2;
+            }
+
+        }
+
+
+
         #endregion
         #region 事件说明
         public delegate bool MachineDataReceived(string data);
@@ -1065,7 +1378,7 @@ namespace TestMachProject
         /// 校情通接收记录事件
         /// </summary>
         public event MachineDataReceivedX DataReceivedX;
-        public delegate void MachinePhotoReceivedX(int flowno);
+        public delegate void MachinePhotoReceivedX(int macno, int flowno);
         /// <summary>
         /// 校情通接收照片事件
         /// </summary>
@@ -1081,6 +1394,10 @@ namespace TestMachProject
 
         public delegate void DataCompare(string ip, byte[] data);
         public event DataCompare DataCompareUpload;
+        public delegate int DealApplyJZ(string ip, string data, byte[] secdata, ref int[] com, ref string[] content);
+        public event DealApplyJZ DealApplyedJ;
+
+
         #endregion
         #region CRC检验码生成
         private String getCRC16(String Source)
@@ -1141,7 +1458,7 @@ namespace TestMachProject
         public int ShakeHand(string ip)//握手
         {
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, m_macaddr, m_slen, m_command, m_appdata), 0, 1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_macaddr, m_slen, m_command, m_appdata), 0, 1, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -1160,7 +1477,7 @@ namespace TestMachProject
             string slen = "0002", command = "0002", appdata = "", macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0, 2, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0, 2, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[8];
@@ -1182,7 +1499,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x82, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x82, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[8];
@@ -1205,7 +1522,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4], mac = new byte[6], port = new byte[2], auto = new byte[1];
@@ -1243,7 +1560,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x83, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x83, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -1266,7 +1583,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x04, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x04, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4], mac = new byte[64], port = new byte[2];
@@ -1300,7 +1617,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x84, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x84, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1323,7 +1640,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x05, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x05, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4], mac = new byte[64], port = new byte[2];
@@ -1358,7 +1675,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x85, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x85, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1381,7 +1698,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x06, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x06, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1409,7 +1726,7 @@ namespace TestMachProject
             string slen = "000A";
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x86, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x86, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1435,7 +1752,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x07, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x07, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -1459,7 +1776,7 @@ namespace TestMachProject
             string slen = "0003";
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x87, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x87, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -1477,7 +1794,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x08, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x08, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -1507,7 +1824,7 @@ namespace TestMachProject
             string slen = "0003";
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x88, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x88, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -1535,7 +1852,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x09, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x09, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1563,7 +1880,7 @@ namespace TestMachProject
             string slen = "0006";
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x89, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x89, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1580,7 +1897,7 @@ namespace TestMachProject
             string slen = "000E";
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0xC0, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0xC0, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1603,7 +1920,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x0A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x0A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1627,7 +1944,7 @@ namespace TestMachProject
             string slen = "0007";
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x8A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x8A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -1649,7 +1966,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x0B, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x0B, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[18];
@@ -1672,7 +1989,7 @@ namespace TestMachProject
             string slen = "0014";
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x00, 0x8B, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x00, 0x8B, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[18];
@@ -1697,7 +2014,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[8];
@@ -1719,7 +2036,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x81, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x81, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[8];
@@ -1741,7 +2058,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -1762,7 +2079,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x82, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x82, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -1783,7 +2100,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -1819,7 +2136,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x83, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x83, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -1852,7 +2169,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x04, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x04, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -1881,7 +2198,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x84, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x84, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -1900,22 +2217,23 @@ namespace TestMachProject
         }
         public TimeSeperate[] GetTimeSeperate(string ip)//读时间段参数0105        
         {
-            TimeSeperate[] time = new TimeSeperate[1];
+            TimeSeperate[] time = new TimeSeperate[0];
             string slen = "0002";
             string command = "0105";
             string appdata = "";
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x05, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x05, ref rdata);
             if (rdata.Length > 0)
             {
                 int len;
-                if (rdata[12] == 0)
+                if (rdata[cnoindex + 1] == 0)
                     len = 0;
                 else
-                    len = (rlen - 15) / rdata[12];
-                for (int count = 0; count < rdata[12]; count++)
+                    len = (rlen - 15) / rdata[cnoindex + 1];
+                time = new TimeSeperate[rdata[cnoindex + 1]];
+                for (int count = 0; count < rdata[cnoindex + 1]; count++)
                 {
                     byte[] data = new byte[2];
                     Array.Copy(rdata, cnoindex + 2 + count * len, data, 0, 2);
@@ -1957,15 +2275,16 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x85, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x85, ref rdata);
             if (rdata.Length > 0)
             {
                 int len;
-                if (rdata[12] == 0)
+                if (rdata[cnoindex + 1] == 0)
                     len = 0;
                 else
-                    len = (rlen - 15) / rdata[12];
-                for (int count = 0; count < rdata[12]; count++)
+                    len = (rlen - 15) / rdata[cnoindex + 1];
+                time = new TimeSeperate[rdata[cnoindex + 1]];
+                for (int count = 0; count < rdata[cnoindex + 1]; count++)
                 {
                     byte[] data = new byte[2];
                     Array.Copy(rdata, cnoindex + 2 + count * len, data, 0, 2);
@@ -1992,7 +2311,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x06, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x06, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -2009,7 +2328,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x86, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x86, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -2026,7 +2345,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x07, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x07, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2060,7 +2379,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x87, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x87, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2089,7 +2408,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x08, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x08, ref rdata);
             if (rdata.Length > 0)
             {
                 parms = new string[42];
@@ -2117,7 +2436,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x88, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x88, ref rdata);
             if (rdata.Length > 0)
             {
                 parms = new string[42];
@@ -2140,7 +2459,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x09, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x09, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2171,7 +2490,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x89, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x89, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2198,7 +2517,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x0A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x0A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2231,7 +2550,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x8A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x8A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2259,7 +2578,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x0B, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x0B, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2294,7 +2613,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0x8B, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0x8B, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2317,7 +2636,7 @@ namespace TestMachProject
             return -1;
         }
 
-        public bool Initial(string ip, int type)//初始化机器
+        public bool Initial(string ip, int type)//初始化机器01C1
         {
             string slen = "0003";
             string command = "01C1";
@@ -2325,13 +2644,47 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x01, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 if (rdata[cnoindex + 1] == 0x00)
                     return true;
             }
             return false;
+        }
+        public bool Reset(string ip)//重启机器01C2
+        {
+            string slen = "0006";
+            string command = "01C2";
+            string appdata = "8A96B9F5";
+            string macaddr = ip.Split(':')[1];
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0xC2, ref rdata);
+            if (rdata.Length > 0)
+            {
+                if (rdata[cnoindex + 1] == 0x00)
+                    return true;
+            }
+            return false;
+        }
+        public int SwitchWifi(string ip, int wireless, int wifi)
+        {
+            string command = "01C3";
+            string appdata = wireless.ToString("X2").PadLeft(2, '0') + wifi.ToString("X2").PadLeft(2, '0');
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x01, 0xC3, ref rdata);
+            if (rdata.Length > 0)
+            {
+                if (rdata[cnoindex + 1] == wireless && rdata[cnoindex + 2] == wifi)
+                    return 0;
+                else
+                    return 1;
+            }
+            return -1;
         }
         #endregion
 
@@ -2345,7 +2698,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -2364,7 +2717,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x81, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x81, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -2381,7 +2734,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -2412,7 +2765,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x82, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x82, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -2437,7 +2790,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[32];
@@ -2477,7 +2830,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x83, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x83, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[32];
@@ -2507,7 +2860,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x04, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x04, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2526,7 +2879,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x84, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x84, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2545,7 +2898,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x05, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x05, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2591,7 +2944,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x85, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x85, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2628,7 +2981,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x06, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x06, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -2647,7 +3000,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x86, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x86, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -2666,7 +3019,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x07, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x07, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -2686,7 +3039,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x87, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x87, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -2705,7 +3058,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x08, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x08, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2724,7 +3077,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x88, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x88, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2743,7 +3096,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x09, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x09, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2762,7 +3115,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x89, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x89, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2781,7 +3134,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x0A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x0A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2800,7 +3153,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x8A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x8A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2819,7 +3172,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x0B, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x0B, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2838,7 +3191,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x8B, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x8B, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -2857,7 +3210,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x0C, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x0C, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -2878,7 +3231,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x8C, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x8C, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -2899,7 +3252,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x0D, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x0D, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -2920,7 +3273,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x8D, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x8D, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -2940,7 +3293,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x0E, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x0E, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 14];
@@ -2957,7 +3310,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x0E, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x0E, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 14];
@@ -2984,7 +3337,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x8E, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x8E, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 14];
@@ -3011,7 +3364,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x8E, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x8E, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 14];
@@ -3112,7 +3465,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0xC0, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0xC0, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3133,7 +3486,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x0F, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x0F, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3152,7 +3505,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x8F, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x8F, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3171,7 +3524,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x10, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x10, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[16];
@@ -3206,7 +3559,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[16];
@@ -3234,7 +3587,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x11, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x11, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[26];
@@ -3283,7 +3636,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x91, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x91, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[26];
@@ -3316,7 +3669,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x12, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x12, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3335,7 +3688,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x92, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x92, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3356,7 +3709,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x13, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x13, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3387,7 +3740,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x93, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x93, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3414,7 +3767,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x14, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x14, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3445,7 +3798,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x94, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x94, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3472,7 +3825,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x15, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x15, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3500,7 +3853,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3524,7 +3877,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x16, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x16, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3553,7 +3906,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x96, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x96, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3578,7 +3931,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x17, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x17, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3596,7 +3949,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x97, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x97, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3614,7 +3967,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x18, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x18, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3639,7 +3992,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x98, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x98, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3661,7 +4014,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x19, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x19, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3681,7 +4034,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x99, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x99, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3699,7 +4052,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x1A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x1A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -3726,7 +4079,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0x9A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x9A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -3735,6 +4088,112 @@ namespace TestMachProject
                 {
                     Array.Copy(rdata, cnoindex + 1 + i * 4, data, 0, 4);
                     amount[i] = byteToint(data);
+                }
+                return 0;
+            }
+            return -1;
+        }
+        public int GetWeightItem(string ip, ref int[] no, ref string[] dispname)//读称重项目物品名称参数0220
+        {
+            string command = "0220";
+            string appdata = "";
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x20, ref rdata);
+            if (rdata.Length > 0)
+            {
+                no = new int[20];
+                dispname = new string[20];
+                for (int i = 0; i < 20; i++)
+                {
+                    byte[] data = new byte[2];
+                    Array.Copy(rdata, cnoindex + 1 + i * 18, data, 0, 2);
+                    no[i] = byteToint(data);
+                    data = new byte[16];
+                    Array.Copy(rdata, cnoindex + 3 + i * 18, data, 0, 16);
+                    dispname[i] = Encoding.Default.GetString(data);
+                }
+                return 0;
+            }
+            return -1;
+        }
+        public int SetWeightItem(string ip, ref int[] no, ref string[] dispname)//设置称重项目物品名称参数02A0
+        {
+            string command = "02A0";
+            string appdata = "";
+            for (int i = 0; i < 20; i++)
+            {
+                string disp = byteTostring(Encoding.Default.GetBytes(dispname[i]));
+                appdata += no[i].ToString("X2").PadLeft(4, '0');
+                appdata += (disp.Length > 30 ? disp.Substring(0, 30) : disp).PadRight(32, '0');
+            }
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0xA0, ref rdata);
+            if (rdata.Length > 0)
+            {
+                no = new int[20];
+                dispname = new string[20];
+                for (int i = 0; i < 20; i++)
+                {
+                    byte[] data = new byte[2];
+                    Array.Copy(rdata, cnoindex + 1 + i * 18, data, 0, 2);
+                    no[i] = byteToint(data);
+                    data = new byte[16];
+                    Array.Copy(rdata, cnoindex + 3 + i * 18, data, 0, 16);
+                    dispname[i] = Encoding.Default.GetString(data);
+                }
+                return 0;
+            }
+            return -1;
+        }
+        public int GetTempLimit(string ip, ref string[] templimit)//读温湿度监控项目温湿度限制参数0221
+        {
+            string command = "0221";
+            string appdata = "";
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0x21, ref rdata);
+            if (rdata.Length > 0)
+            {
+                templimit = new string[rdata[cnoindex + 1]];
+                for (int i = 0; i < templimit.Length; i++)
+                {
+                    byte[] data = new byte[8];
+                    Array.Copy(rdata, cnoindex + 2 + i * 8, data, 0, 8);
+                    templimit[i] = byteTostring(data);
+                }
+                return 0;
+            }
+            return -1;
+        }
+        public int SetTempLimit(string ip, ref string[] templimit)//设置温湿度监控项目温湿度限制参数02A1
+        {
+            string command = "02A1";
+            string appdata = templimit.Length.ToString("X2").PadLeft(2, '0');
+            for (int i = 0; i < templimit.Length; i++)
+            {
+                appdata += templimit[i];
+            }
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0xA1, ref rdata);
+            if (rdata.Length > 0)
+            {
+                templimit = new string[rdata[cnoindex + 1]];
+                for (int i = 0; i < templimit.Length; i++)
+                {
+                    byte[] data = new byte[8];
+                    Array.Copy(rdata, cnoindex + 2 + i * 8, data, 0, 8);
+                    templimit[i] = byteTostring(data);
                 }
                 return 0;
             }
@@ -3749,7 +4208,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0xC0, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0xC0, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3766,7 +4225,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3789,7 +4248,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0xC2, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0xC2, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -3807,7 +4266,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x02, 0xC3, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x02, 0xC3, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -3875,7 +4334,7 @@ namespace TestMachProject
                 int sindex = 0, eindex = 0;
                 while (eindex < ds[i].Length)
                 {
-                    if (ds[i][eindex] == '0')
+                    if (ds[i][eindex] == '0' && i < row.Length - 1 && ds[i + 1][eindex] > '0' && ds[i][eindex] < '9')
                     {
                         if (eindex != sindex)
                         {
@@ -3928,7 +4387,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 16], ndata;
@@ -3980,7 +4439,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x81, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x81, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 16], ndata;
@@ -4032,7 +4491,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4056,7 +4515,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x82, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x82, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4076,7 +4535,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4110,7 +4569,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x83, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x83, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4130,7 +4589,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x04, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x04, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4164,7 +4623,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x84, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x84, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4184,7 +4643,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x05, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x05, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15], ndata;
@@ -4242,7 +4701,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x85, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x85, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15], ndata;
@@ -4300,7 +4759,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x06, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x06, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4334,7 +4793,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x86, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x86, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4354,7 +4813,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x07, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x07, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4388,7 +4847,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0x87, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0x87, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4412,7 +4871,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -4434,7 +4893,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x03, 0xC2, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x03, 0xC2, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -4456,7 +4915,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4475,7 +4934,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0x81, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0x81, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4498,7 +4957,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4552,7 +5011,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4562,15 +5021,6 @@ namespace TestMachProject
             }
             return rf;
         }
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="ip"></param>
-        /// <param name="type"></param>
-        /// <param name="sum"></param>
-        /// <param name="startindex"></param>
-        /// <param name="delete">true,false,如果为true则在返回记录后删除记录</param>
-        /// <returns></returns>
         public string[] GetRecords(string ip, int type, int sum, int startindex, bool delete)//读记录0441
         {
             if (sum == 0) sum = 65535;
@@ -4604,7 +5054,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0x41, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 14];
@@ -4654,6 +5104,12 @@ namespace TestMachProject
                         {
                             if (type == 4)
                                 datastr[rindex] += str + "=" + Convert.ToInt16(bdata[0]).ToString().PadLeft(2, '0') + ",";
+                            else if (type == 36 || type == 39 || type == 40 || type == 41 || type == 43 || type == 45 || type == 46)
+                                datastr[rindex] += str + "=" + Encoding.ASCII.GetString(bdata) + ",";
+                            else if (type == 37)
+                                datastr[rindex] += str + "=" + (bdata[1] * 256 + bdata[0]).ToString() + ",";
+                            else if (type >= 144 && type <= 175 || type == 42 || type == 44)
+                                datastr[rindex] += str + "=" + Encoding.Default.GetString(bdata) + ",";
                             else
                                 datastr[rindex] += str + "=" + byteTolong(bdata).ToString() + ",";
                         }
@@ -4698,7 +5154,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0x42, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0x42, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -4719,7 +5175,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0x43, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0x43, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -4741,7 +5197,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 bool ret = rdata[cnoindex + 1] == 0x00 ? true : false;
@@ -4757,7 +5213,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 bool ret = rdata[cnoindex + 1] == 0x00 ? true : false;
@@ -4775,7 +5231,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 bool ret = rdata[cnoindex + 1] == 0x00 ? true : false;
@@ -4793,7 +5249,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x04, 0xC2, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x04, 0xC2, ref rdata);
             if (rdata.Length > 0)
             {
                 bool ret = rdata[cnoindex + 1] == 0x00 ? true : false;
@@ -4813,7 +5269,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4835,7 +5291,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0x81, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0x81, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 15];
@@ -4857,7 +5313,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -4889,7 +5345,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0x82, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0x82, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -4921,7 +5377,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -4940,7 +5396,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0x83, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0x83, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -4958,7 +5414,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 if (rdata[cnoindex + 1] == 0x00)
@@ -4976,7 +5432,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 if (rdata[cnoindex + 1] == 0x00)
@@ -4998,7 +5454,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 if (rdata[cnoindex + 1] == 0x00)
@@ -5020,7 +5476,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 if (rdata[cnoindex + 1] == 0x00)
@@ -5044,7 +5500,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 if (rdata[cnoindex + 1] == 0x00)
@@ -5068,7 +5524,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 if (rdata[cnoindex + 1] == 0x00)
@@ -5091,11 +5547,11 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC2, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC2, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
-                Array.Copy(rdata, 13, data, 0, 1);
+                Array.Copy(rdata, cnoindex + 2, data, 0, 1);
                 tl = Convert.ToInt16(data[0]);
                 if (tl > 0)
                 {
@@ -5154,7 +5610,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC3, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC3, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[rlen - 14];
@@ -5191,6 +5647,12 @@ namespace TestMachProject
                                 data = new byte[4];
                                 Array.Copy(bytedata, startpoint + usedlen, data, 0, 4);
                                 lists[i].cardid += byteTolong(data);
+                                usedlen += 4;
+                                break;
+                            case "93"://工号4字节
+                                data = new byte[4];
+                                Array.Copy(bytedata, startpoint + usedlen, data, 0, 4);
+                                lists[i].empno += Encoding.GetEncoding("gb2312").GetString(data);
                                 usedlen += 4;
                                 break;
                             case "95"://工号6字节
@@ -5293,7 +5755,7 @@ namespace TestMachProject
         /// <param name="empno">工号</param>
         /// <param name="empname">姓名</param>
         /// <returns>0表示成功，其他失败</returns>
-        public int DownList(string ip, ListField[] lf)//下载名单05C4
+        public int DownList(string ip, ListField[] lf)
         {
             ListStoreFormat lsf = GetListStoredFormat(ip);
             for (int i = 0; i < lf.Length; i++)
@@ -5311,6 +5773,19 @@ namespace TestMachProject
 
                 if (DownList(ip, lsf, downlf) != 0) return 1;
                 downloaded += thisdowns;
+            }
+            return 0;
+        }
+        public int DownFinger(string ip, ListField[] lf, byte[][] fingertmp)
+        {
+            ListStoreFormat lsf = GetListStoredFormat(ip);
+            for (int i = 0; i < lf.Length; i++)
+            {
+                lf[i].liststoredformat = lsf;
+                if (lf[i].timecontrol == null) lf[i].timecontrol = "1".PadRight(56, '1');
+                ListField[] downlf = new ListField[1];
+                downlf[0] = lf[i];
+                if (DownFinger(ip, lsf, downlf, fingertmp[i]) != 0) return 1;
             }
             return 0;
         }
@@ -5352,7 +5827,26 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x05, 0xC4, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC4, ref rdata);
+            if (rdata.Length > 0)
+            {
+                byte[] data = new byte[1];
+                Array.Copy(rdata, cnoindex + 1, data, 0, 1);
+                r = Convert.ToInt16(data[0]);
+                return r;
+            }
+            return r;
+        }
+        private int DownFinger(string ip, ListStoreFormat liststoredformat, ListField[] lfs, byte[] fingertmp)//下载指纹05C5
+        {
+            int r = 1;
+            string command = "05C5";
+            string appdata = lfs.Length.ToString("X2").PadLeft(2, '0') + liststoredformat.len.ToString("X2").PadLeft(2, '0') + ListDataLink(liststoredformat, lfs) + byteTostring(fingertmp);
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC5, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -5432,6 +5926,50 @@ namespace TestMachProject
             }
             return listdata.PadRight(liststoreformat.len * 2, 'F');
         }
+        public int TestFinger(string ip, Int64 cardno)//测试名单05C6
+        {
+            int tl = -1;
+            string command = "05C6";
+            string appdata = cardno.ToString("X2").PadLeft(8, '0');
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC6, ref rdata);
+            if (rdata.Length > 0)
+            {
+                byte[] data = new byte[1];
+                Array.Copy(rdata, cnoindex + 2, data, 0, 1);
+                tl = Convert.ToInt16(data[0]);
+                if (tl > 0)
+                {
+                    Array.Copy(rdata, cnoindex + 1, data, 0, 1);
+                    string il = Convert.ToString(data[0], 2);
+                    if (il[7] == '0') tl = -1;
+                    if (il[5] == '0') tl = -2;
+                }
+                return tl;
+            }
+            return tl;
+        }
+        public int GetFingerCount(string ip, ref int count)//测试名单05C7
+        {
+            string command = "05C7";
+            string appdata = "";
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x05, 0xC7, ref rdata);
+            if (rdata.Length > 0)
+            {
+                byte[] data = new byte[2];
+                Array.Copy(rdata, cnoindex + 2, data, 0, 2);
+                count = byteToint(data);
+                return rdata[cnoindex + 1];
+            }
+            return -1;
+        }
         #endregion
 
         #region M1卡操作(06)
@@ -5453,7 +5991,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -5472,7 +6010,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 ps = new int[3];
@@ -5495,7 +6033,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x82, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x82, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -5514,7 +6052,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -5533,7 +6071,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x83, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x83, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -5552,7 +6090,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x04, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x04, ref rdata);
             if (rdata.Length > 0)
             {
                 sec = new string[2];
@@ -5573,7 +6111,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x84, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x84, ref rdata);
             if (rdata.Length > 0)
             {
                 sec = new string[2];
@@ -5594,7 +6132,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x85, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x85, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -5613,7 +6151,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0x40, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0x40, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[16];
@@ -5637,7 +6175,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x06, 0xC0, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x06, 0xC0, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[16];
@@ -5658,7 +6196,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x07, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x07, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -5677,7 +6215,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x07, 0x81, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x07, 0x81, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -5704,7 +6242,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x07, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x07, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -5759,7 +6297,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x08, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x08, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 bt = new BellTime[rdata[cnoindex + 1]];
@@ -5794,7 +6332,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x08, 0x81, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x08, 0x81, ref rdata);
             if (rdata.Length > 0)
             {
                 bt = new BellTime[rdata[cnoindex + 1]];
@@ -5826,7 +6364,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x08, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x08, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -5848,7 +6386,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x08, 0x82, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x08, 0x82, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -5869,7 +6407,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x08, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x08, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -5888,7 +6426,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x08, 0x83, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x08, 0x83, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -5913,7 +6451,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x08, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x08, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -5941,7 +6479,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x0A, 0xC1, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x0A, 0xC1, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -5961,7 +6499,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x0F, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x0F, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -5992,7 +6530,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x0F, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x0F, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -6033,11 +6571,23 @@ namespace TestMachProject
             }
             return 1;
         }
+
+
+
+
+
         #endregion
 
         #region 实时分析(09)
         private static string[] onlinemac = new string[500], recordtype = new string[500], machineno = new string[500], seriesno = new string[500];
         private static int maccount = 0;
+        private List<PhotoData> pPhotoData = new List<PhotoData>();
+        private struct PhotoData
+        {
+            public byte[] photo;
+            public string ip;
+            public int flowno;
+        }
         private int Findstring(string[] arr, string value)
         {
             for (int i = 0; i < maccount; i++)
@@ -6046,13 +6596,11 @@ namespace TestMachProject
             }
             return -1;
         }
-
         private void Monitor(object o)
         {
-            byte[] data = (o as MonitorParm).data;
-            IPEndPoint ep = (o as MonitorParm).ep;
-            int len = (o as MonitorParm).len;
-
+            byte[] data = (o as MonitorParm).data; ;
+            IPEndPoint ep = (o as MonitorParm).ep; ;
+            int len = (o as MonitorParm).len; ;
             if (data[cnoindex] == 0x01)//设备登录
             {
                 Logon(data, ep, len);
@@ -6106,34 +6654,31 @@ namespace TestMachProject
             string slen = "0003";
             string command = "0901";
             string appdata = "00";
-            string macaddr = (Convert.ToInt16(data[6]) * 256 + Convert.ToInt16(data[7])).ToString("X2").PadLeft(4, '0');
-            if (data[5] == 2) macaddr = (Convert.ToInt16(macaddr, 16) * 65536 + Convert.ToInt16(data[8]) * 256 + Convert.ToInt16(data[9])).ToString("X2").PadLeft(8, '0');
+            string macaddr = getmacno(data);
 
-            SendData(Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), ep.Address, ep.Port);
+            SendData(Getcommandline(m_syn, macaddr, slen, command, appdata), ep.Address, ep.Port);
             int index = Findstring(onlinemac, ep.Address.ToString());
-            byte[] type = new byte[len - 38], macno = new byte[2], serno = new byte[8];
+            byte[] type = new byte[len - 38], serno = new byte[8];
             Array.Copy(data, cnoindex + 25, type, 0, len - 38);
-            Array.Copy(data, cnoindex + 9, macno, 0, 2);
             Array.Copy(data, cnoindex + 11, serno, 0, 8);
 
             if (index == -1)
             {
                 onlinemac[maccount] = ep.Address.ToString();
                 recordtype[maccount] = (byteTostring(type));
-                machineno[maccount] = byteTostring(macno);
+                machineno[maccount] = macaddr;
                 seriesno[maccount] = byteTostring(serno);
                 maccount++;
             }
             else
             {
                 recordtype[index] = (byteTostring(type));
-                machineno[index] = byteTostring(macno);
+                machineno[index] = macaddr;
                 seriesno[index] = byteTostring(serno);
             }
             if (MachineLoged != null)
             {
-                string mac = byteTostring(macno).PadLeft(4, '0');
-                MachineLoged(ep.Address.ToString() + ":" + mac, index);
+                MachineLoged(ep.Address.ToString() + "|" + ep.Port.ToString() + ":" + macaddr, index);
             }
             Thread.CurrentThread.Abort();
         }
@@ -6142,13 +6687,30 @@ namespace TestMachProject
             string slen = "000B";
             string command = "0902";
             string appdata = "01" + GetByteTime();
-            string macaddr = (Convert.ToInt16(data[6]) * 256 + Convert.ToInt16(data[7])).ToString("X2").PadLeft(4, '0');
-            if (data[5] == 2) macaddr = (Convert.ToInt16(macaddr, 16) * 65536 + Convert.ToInt16(data[8]) * 256 + Convert.ToInt16(data[9])).ToString("X2").PadLeft(8, '0');
+            string macaddr = getmacno(data);
 
-            SendData(Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), ep.Address, ep.Port);
+            SendData(Getcommandline(m_syn, macaddr, slen, command, appdata), ep.Address, ep.Port);
             if (MachineDumped != null)
             {
-                MachineDumped(ep.Address.ToString() + ":" + m_macaddr);
+                int addrlen = getaddrlength(data);
+                string temp = "";
+                if (len > addrlen + 16)
+                {
+                    switch (data[addrlen + 15])
+                    {
+                        case 1:
+                            byte[] tdata = new byte[2];
+                            Array.Copy(data, addrlen + 16, tdata, 0, 2);
+                            int datalen = Convert.ToInt16(tdata);
+                            for (int i = 0; i < datalen / 2; i++)
+                            {
+                                Array.Copy(data, addrlen + 18 + i * 2, tdata, 0, 2);
+                                temp += ":" + Convert.ToInt16(tdata).ToString();
+                            }
+                            break;
+                    }
+                }
+                MachineDumped(ep.Address.ToString() + ":" + macaddr + temp);
             }
             Thread.CurrentThread.Abort();
         }
@@ -6163,7 +6725,7 @@ namespace TestMachProject
             if (data[5] == 2) macaddr = (Convert.ToInt16(macaddr, 16) * 65536 + Convert.ToInt16(data[8]) * 256 + Convert.ToInt16(data[9])).ToString("X2").PadLeft(8, '0');
             if (SaveData(data, ep, len))
             {
-                SendData(Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), ep.Address, ep.Port);
+                SendData(Getcommandline(m_syn, macaddr, slen, command, appdata), ep.Address, ep.Port);
             }
             Thread.CurrentThread.Abort();
         }
@@ -6211,7 +6773,7 @@ namespace TestMachProject
 
             if (SavePhoto(data, ep, len))
             {
-                SendData(Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), ep.Address, ep.Port);
+                SendData(Getcommandline(m_syn, macaddr, slen, command, appdata), ep.Address, ep.Port);
             }
             Thread.CurrentThread.Abort();
         }
@@ -6226,16 +6788,36 @@ namespace TestMachProject
             int total = byteToint(totallength);
             int index = byteToint(photoindex);
             int length = byteToint(sendlength);
+            int macno = Convert.ToInt16(data[6]) * 256 + Convert.ToInt16(data[7]);
+            if (data[5] == 2) macno = macno * 65536 + Convert.ToInt16(data[8]) * 256 + Convert.ToInt16(data[9]);
+
             if (index == 0)
             {
-                photo = new byte[total];
+                PhotoData pdata = new PhotoData();
+                pdata.photo = new byte[total];
+                pdata.ip = ep.Address.ToString();
+                pdata.flowno = flowno;
+                Array.Copy(data, cnoindex + 19, pdata.photo, index, length);
+                pPhotoData.Add(pdata);
             }
-            Array.Copy(data, cnoindex + 19, photo, index, length);
-            if (total == index + length)
+            else
             {
-                if (!SavePhoto(photo, flowno, total))
-                    return false;
+                foreach (PhotoData pd in pPhotoData)
+                {
+                    if (pd.ip == ep.Address.ToString() && pd.flowno == flowno)
+                    {
+                        Array.Copy(data, cnoindex + 19, pd.photo, index, length);
+                        if (total == index + length)
+                        {
+                            bool f = SavePhoto(pd.photo, macno, flowno, total);
+                            pPhotoData.Remove(pd);
+                            if (f) return true;
+                            else return false;
+                        }
+                    }
+                }
             }
+
             return true;
         }
         private void DealApplyID(byte[] data, IPEndPoint ep, int len)
@@ -6248,7 +6830,7 @@ namespace TestMachProject
                     byte btype = data[cnoindex + 1];
                     if (btype == 1)
                     {
-                        Array.Copy(data, cnoindex + 1, bflowno, 0, 4);
+                        Array.Copy(data, cnoindex + 2, bflowno, 0, 4);
                         Array.Copy(data, cnoindex + 7, bcardno, 0, 8);
                         Array.Copy(data, cnoindex + 17, bdealtype, 0, 1);
                         Array.Copy(data, cnoindex + 18, bamount, 0, 4);
@@ -6256,7 +6838,7 @@ namespace TestMachProject
                     else
                     {
                         bamount = new byte[2];
-                        Array.Copy(data, cnoindex + 2, bflowno, 0, 4);
+                        Array.Copy(data, cnoindex + 3, bflowno, 0, 4);
                         Array.Copy(data, cnoindex + 7, bcardno, 0, 8);
                         Array.Copy(data, cnoindex + 15, bamount, 0, 2);
                     }
@@ -6285,7 +6867,7 @@ namespace TestMachProject
                             string macaddr = (Convert.ToInt16(data[6]) * 256 + Convert.ToInt16(data[7])).ToString("X2").PadLeft(4, '0');
                             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
-                            SendData(Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), ep.Address, ep.Port);
+                            SendData(Getcommandline(m_syn, macaddr, slen, command, appdata), ep.Address, ep.Port);
                         }
                         else//正常返回值
                         {
@@ -6302,7 +6884,7 @@ namespace TestMachProject
                             string macaddr = (Convert.ToInt16(data[6]) * 256 + Convert.ToInt16(data[7])).ToString("X2").PadLeft(4, '0');
                             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
-                            SendData(Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), ep.Address, ep.Port);
+                            SendData(Getcommandline(m_syn, macaddr, slen, command, appdata), ep.Address, ep.Port);
                         }
                     }
                 }
@@ -6399,7 +6981,7 @@ namespace TestMachProject
                     string macaddr = (Convert.ToInt16(data[6]) * 256 + Convert.ToInt16(data[7])).ToString("X2").PadLeft(4, '0');
                     string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
-                    SendData(Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), ep.Address, ep.Port);
+                    SendData(Getcommandline(m_syn, macaddr, slen, command, appdata), ep.Address, ep.Port);
                 }
                 else//确认
                 {
@@ -6420,7 +7002,7 @@ namespace TestMachProject
                     tdata = new byte[2];
                     Array.Copy(data, cnoindex + 13, tdata, 0, 2);//系统卡交易流水
                     parms[5] = byteToint(tdata).ToString();
-                    Array.Copy(data, cnoindex + 15, tdata, 0, 2);//补贴钱包批次号
+                    Array.Copy(data, cnoindex + 15, tdata, 0, 2);//补贴批次
                     parms[6] = byteToint(tdata).ToString();
                     if (CardBlashedIC != null)//外部处理
                     {
@@ -6503,6 +7085,31 @@ namespace TestMachProject
             }
             Thread.CurrentThread.Abort();
         }
+
+
+        private bool SavePhoto(byte[] photo, int macno, int flowno, int len)
+        {
+            try
+            {
+                string filename = Application.StartupPath + "\\" + macno.ToString().PadLeft(4, '0') + flowno.ToString().PadLeft(6, '0') + ".jpg";// Application.StartupPath + "\\520PHOTO.jpg";
+                MemoryStream ms = new MemoryStream(photo);
+                Image image = System.Drawing.Image.FromStream(ms);
+                System.IO.FileInfo info = new System.IO.FileInfo(filename);
+                System.IO.Directory.CreateDirectory(info.Directory.FullName);
+                File.WriteAllBytes(filename, photo);
+                //GenerateHighThumbnail(filename, Application.StartupPath + "\\" + flowno.ToString() + ".jpg", 160, 120);
+                if (PhotoReceivedX != null)
+                {
+                    PhotoReceivedX(macno, flowno);
+                }
+            }
+            catch (Exception ex)
+            {
+                string a = ex.Message;
+                return false;
+            }
+            return true;
+        }
         #endregion
 
         #region 校情通部分
@@ -6514,7 +7121,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x09, 0x50, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x09, 0x50, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -6532,20 +7139,43 @@ namespace TestMachProject
             switch (data[16])
             {
                 case 0x09:
+                    if (data[cnoindex + 6] == 0x01)//正常登录
+                    {
+                        Logon(data, ep, len);
+                    }
+                    if (data[cnoindex + 6] == 0x02)//正常心跳
+                    {
+                        Dump(data, ep, len);
+                    }
                     if (data[cnoindex + 6] == 0x40)//心跳
                     {
                         DumpX(data, ep, len);
                     }
                     if (data[cnoindex + 6] == 0x41)//记录数据
                     {
-                        //Thread t = new Thread(new ParameterizedThreadStart(SynDataX));
-                        //MonitorParm rd=new MonitorParm(data,ep,len);
-                        //t.Start(rd);
                         SynDataX(data, ep, len);
                     }
                     if (data[cnoindex + 6] == 0x42)//照片数据
                     {
                         SynPhotoX(data, ep, len);
+                    }
+                    break;
+                case 0x0B://京兆无线消费机
+                    switch (data[cnoindex + 6])
+                    {
+                        case 0x01:
+                            LogonJ(data, ep, len);
+                            break;
+                        case 0x02:
+                            DumpJ(data, ep, len);
+                            break;
+                        case 0x03:
+                            DealApplyJ(data, ep, len);
+                            break;
+                        default:
+                            savebuffer.Add(data);
+                            bufferlen.Add(len);
+                            break;
                     }
                     break;
                 case 0x0F:
@@ -6561,6 +7191,17 @@ namespace TestMachProject
                     break;
             }
         }
+        private void LogonJ(byte[] data, IPEndPoint ep, int len)
+        {
+            string slen = "0003";
+            string command = "0B01";
+            string appdata = "00";
+            byte[] sierialno = new byte[8];
+            Array.Copy(data, 6, sierialno, 0, 8);
+            string macaddr = byteTostring(sierialno);
+            if (MachineLoged != null) MachineLoged(ep.Address.ToString() + "|" + ep.Port.ToString() + ":0001", 0);
+            SendData(Getcommandline(m_syn, "00000001", macaddr, slen, command, appdata), ep.Address, ep.Port);
+        }
         private void DumpX(byte[] data, IPEndPoint ep, int len)
         {
             string slen = "000A";
@@ -6570,7 +7211,18 @@ namespace TestMachProject
             Array.Copy(data, 6, sierialno, 0, 8);
             string macaddr = byteTostring(sierialno);
 
-            SendData(Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), ep.Address, ep.Port);
+            SendData(Getcommandline(m_syn, "00000001", macaddr, slen, command, appdata), ep.Address, ep.Port);
+        }
+        private void DumpJ(byte[] data, IPEndPoint ep, int len)
+        {
+            string slen = "000B";
+            string command = "0B02";
+            string appdata = "0A" + GetByteTime();
+            byte[] sierialno = new byte[8];
+            Array.Copy(data, 6, sierialno, 0, 8);
+            string macaddr = byteTostring(sierialno);
+
+            SendData(Getcommandline(m_syn, "00000001", macaddr, slen, command, appdata), ep.Address, ep.Port);
         }
         private void SynDataX(byte[] data, IPEndPoint ep, int len)
         {
@@ -6730,39 +7382,136 @@ namespace TestMachProject
             int length = byteToint(sendlength);
             if (index == 0)
             {
-                photo = new byte[total];
+                PhotoData pdata = new PhotoData();
+                pdata.photo = new byte[total];
+                pdata.ip = ep.Address.ToString();
+                pdata.flowno = flowno;
+                Array.Copy(data, 36, pdata.photo, index, length);
+                pPhotoData.Add(pdata);
             }
-            Array.Copy(data, 36, photo, index, length);
-            if (total == index + length)
+            else
             {
-                if (!SavePhoto(photo, flowno, total))
-                    return false;
+                foreach (PhotoData pd in pPhotoData)
+                {
+                    if (pd.ip == ep.Address.ToString() && pd.flowno == flowno)
+                    {
+                        Array.Copy(data, 36, pd.photo, index, length);
+                        if (total == index + length)
+                        {
+                            bool f = SavePhoto(pd.photo, 0, flowno, total);
+                            pPhotoData.Remove(pd);
+                            if (!f) return false;
+                        }
+                    }
+                }
             }
             return true;
         }
-
-        private bool SavePhoto(byte[] photo, int flowno, int len)
+        private void DealApplyJ(byte[] data, IPEndPoint ep, int len)
         {
-            try
+            byte[] down = new byte[15], secdata = new byte[48];
+            Array.Copy(data, 18, down, 0, 15);
+            Array.Copy(data, 33, secdata, 0, 48);
+
+            if (DealApplyedJ != null)
             {
-                string filename = Application.StartupPath + "\\" + flowno.ToString() + ".jpg";// Application.StartupPath + "\\520PHOTO.jpg";
-                MemoryStream ms = new MemoryStream(photo);
-                Image image = System.Drawing.Image.FromStream(ms);
-                System.IO.FileInfo info = new System.IO.FileInfo(filename);
-                System.IO.Directory.CreateDirectory(info.Directory.FullName);
-                File.WriteAllBytes(filename, photo);
-                //GenerateHighThumbnail(filename, Application.StartupPath + "\\" + flowno.ToString() + ".jpg", 160, 120);
-                if (PhotoReceivedX != null)
+                int[] com = new int[0];
+                string[] content = new string[0];
+                byte[] sierialno = new byte[8];
+                Array.Copy(data, 6, sierialno, 0, 8);
+                string macaddr = byteTostring(sierialno);
+                int ret = DealApplyedJ(ep.Address.ToString() + "|" + ep.Port.ToString() + ":" + macaddr, byteTostring(down), secdata, ref com, ref content);
+                if (ret == 0)
                 {
-                    PhotoReceivedX(flowno);
+                    string appdata = ret.ToString("X2").PadLeft(2, '0') + byteTostring(down) + com.Length.ToString("X2").PadLeft(2, '0');
+                    for (int i = 0; i < com.Length; i++)
+                    {
+                        switch (com[i])
+                        {
+                            case 0x01:
+                                appdata += "01" + content[i];
+                                break;
+                            case 0x02:
+                                appdata += "02" + content[i];
+                                break;
+                            case 0x20:
+                                appdata += "20" + content[i];
+                                break;
+                            case 0x30:
+                                appdata += "30" + content[i].Substring(0, 4) + SetDisplayJ(content[i].Substring(4));
+                                break;
+                        }
+                    }
+                    string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+                    string command = "0B03";
+                    byte[] commandline = Getcommandline(m_syn, macaddr, slen, command, appdata);
+                    SendData(commandline, ep.Address, ep.Port);
                 }
             }
-            catch (Exception ex)
+        }
+        private string SetDisplayJ(string disp)
+        {
+            string[] dis = disp.Split(';');
+            string rds = "";
+            for (int i = 0; i < dis.Length; i++)
             {
-                string a = ex.Message;
-                return false;
+                rds += int.Parse(dis[i].Substring(0, 2)).ToString("X2").PadLeft(2, '0');
+                rds += int.Parse(dis[i].Substring(2, 2)).ToString("X2").PadLeft(2, '0');
+                rds += byteTostring(Encoding.Default.GetBytes(dis[i].Substring(4)));
+                rds += "00";
             }
-            return true;
+            rds += "00";
+            return rds;
+        }
+        public int SetControlMac(string ip, int[] com, string[] content)
+        {
+            string command = "0B04";
+            string appdata = com.Length.ToString("X2").PadLeft(2, '0');
+            for (int i = 0; i < com.Length; i++)
+            {
+                switch (com[i])
+                {
+                    case 0x01:
+                        appdata += "01" + content[i];
+                        break;
+                    case 0x02:
+                        appdata += "02" + content[i];
+                        break;
+                    case 0x20:
+                        appdata += "20" + content[i];
+                        break;
+                    case 0x30:
+                        appdata += "30" + content[i].Substring(0, 4) + SetDisplayJ(content[i].Substring(4));
+                        break;
+                }
+            }
+            string macaddr = ip.Split(':')[1];
+            string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x0B, 0x04, ref rdata);
+            if (rdata.Length > 0)
+            {
+                return rdata[cnoindex + 1];
+            }
+            return -1;
+        }
+        public int SetDimentionJ(string ip, int time, byte[] dim)
+        {
+            string slen = "0204";
+            string command = "0B05";
+            string appdata = time.ToString("X2").PadLeft(4, '0') + byteTostring(dim);
+            string macaddr = ip.Split(':')[1];
+
+            byte[] rdata = new byte[0];
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x0B, 0x05, ref rdata);
+            if (rdata.Length > 0)
+            {
+                byte[] data = new byte[2];
+                Array.Copy(rdata, cnoindex + 1, data, 0, 2);
+                return byteToint(data);
+            }
+            return -1;
         }
 
         #endregion
@@ -6776,7 +7525,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[8], macno = new byte[2];
@@ -6797,7 +7546,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x81, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x81, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[8];
@@ -6815,7 +7564,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x02, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x02, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4], mac = new byte[6], port = new byte[2], auto = new byte[1];
@@ -6848,7 +7597,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x82, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x82, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -6866,7 +7615,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -6887,7 +7636,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x03, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x03, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -6908,7 +7657,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x04, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x04, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[4];
@@ -6930,7 +7679,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x05, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x05, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -6966,7 +7715,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x85, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x85, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] ndata = new byte[1];
@@ -6985,7 +7734,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x06, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x06, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[12];
@@ -7019,7 +7768,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x86, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x86, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[16];
@@ -7038,7 +7787,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x87, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x87, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -7057,7 +7806,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x08, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x08, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -7086,7 +7835,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x88, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x88, ref rdata);
             if (rdata.Length > 0)
             {
                 string[] sc = new string[2];
@@ -7108,7 +7857,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x09, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x09, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -7128,7 +7877,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x89, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x89, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[6];
@@ -7145,7 +7894,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x0A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x0A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -7163,7 +7912,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x8A, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x8A, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[2];
@@ -7181,7 +7930,7 @@ namespace TestMachProject
             string macaddr = ip.Split(':')[1];
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x0B, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x0B, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -7201,7 +7950,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0x80, 0x8B, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0x80, 0x8B, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -7243,7 +7992,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0xFD, 0x01, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0xFD, 0x01, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -7260,7 +8009,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0xFD, 0x05, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0xFD, 0x05, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -7277,7 +8026,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0xFD, 0x10, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0xFD, 0x10, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -7295,7 +8044,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0xFD, 0x11, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0xFD, 0x11, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];
@@ -7328,7 +8077,7 @@ namespace TestMachProject
             string slen = (appdata.Length / 2 + 2).ToString("X2").PadLeft(4, '0');
 
             byte[] rdata = new byte[0];
-            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, m_res, macaddr, slen, command, appdata), 0xFD, 0x20, ref rdata);
+            int rlen = GetReturn(ip.Split(':')[0], Getcommandline(m_syn, macaddr, slen, command, appdata), 0xFD, 0x20, ref rdata);
             if (rdata.Length > 0)
             {
                 byte[] data = new byte[1];

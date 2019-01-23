@@ -12,6 +12,7 @@ using System.Net;
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
+using System.Timers;
 namespace TestMachProject
 {
     public partial class Form1 : Form
@@ -20,79 +21,157 @@ namespace TestMachProject
         {
             InitializeComponent();
         }
-        static IPEndPoint point = new IPEndPoint(IPAddress.Any, 8005);
+        static IPEndPoint point = new IPEndPoint(IPAddress.Parse("172.18.1.238"), 8005);
         MachineCtro dlcManage ;
+        MachineCtro dlcCtro;
         private void button1_Click(object sender, EventArgs e)
         {
             dlcManage = new MachineCtro(point);
-            //dlcManage.MachineDumped += new MachineCtro.MachineDump(dlcsocket_MachineDumped);
-            Thread one = new Thread(AutoCollect);
-            one.Start();
-            //Thread two = new Thread(start);
-            //two.Start();
-            //start();
+            start();          
+            SetValue("开始采集！");
         }
         void AutoCollect()
         {
             while (true)
             {
                 SetValue("开始获取数据！！！！");
-                string[] records = dlcManage.GetRecords("192.168.0.240:240", 0, 10, 0, true);
-                string[] records1 = dlcManage.GetRecords("192.168.0.241:241", 0, 10, 0, false);
-                int[] rs = dlcManage.GetRecordInfo("192.168.0.240:240");
-                SetValue("最大可存数:" + rs[0].ToString());
-                SetValue("已存记录数:" + rs[1].ToString());
-                if (records.Length <= 0)
-                {
-                    SetValue("240出现错误！\r\n");
-                }
-                if (records1.Length <= 0)
-                {
-                    SetValue("241出现错误！\r\n");
-                }
-                for (int i = 0; i < records.Length; i++)
-                {
-                    SetValue("240:" + records[i] + "\r\n");
-                }
-                for (int i = 0; i < records1.Length; i++)
-                {
-                    SetValue("241:" + records1[i] + "\r\n");
-                }
+                //string[] records = dlcManage.GetRecords("192.168.0.240:240", 0, 10, 0, true);
+                //string[] records1 = dlcManage.GetRecords("192.168.0.241:241", 0, 10, 0, false);
+                int[] rs = dlcManage.GetRecordInfo("192.168.0.240|8005:0001");
+                int[] rs2 = dlcManage.GetRecordInfo("192.168.0.241|8005:241");
+                SetValue("240最大可存数:" + rs[0].ToString());
+                SetValue("240已存记录数:" + rs[1].ToString());
+                SetValue("241最大可存数:" + rs2[0].ToString());
+                SetValue("241已存记录数:" + rs2[1].ToString());
+                //if (records.Length <= 0)
+                //{
+                //    SetValue("240出现错误！\r\n");
+                //}
+                //if (records1.Length <= 0)
+                //{
+                //    SetValue("241出现错误！\r\n");
+                //}
+                //for (int i = 0; i < records.Length; i++)
+                //{
+                //    SetValue("240:" + records[i] + "\r\n");
+                //}
+                //for (int i = 0; i < records1.Length; i++)
+                //{
+                //    SetValue("241:" + records1[i] + "\r\n");
+                //}
                 Thread.Sleep(1000);//子线程睡眠1秒
             }
         }
-        
+        private int BlackDownList(string ip)
+        {
+            MessageBox.Show(ip);
+            int text = 101;
+            try
+            {
+                text = this.dlcManage.SetTime(ip);
+            }
+            catch (Exception e)
+            {
+                SetValue("错误：" + e.Message);
+                SaveLog(Application.StartupPath + "\\errorlog.txt", "错误："+e.Message);
+                return -1;
+            }
+            if (text != 0)
+            {
+                SetValue("错误：获取到的时间为空" + text);
+                SaveLog(Application.StartupPath + "\\errorlog.txt", "错误：获取到的时间为空"+text);
+                return 1;
+            }
+            int result;
+            try
+            {
+                MachineCtro.ListField[] lf = new MachineCtro.ListField[1];
+                try
+                {
+                    lf[0].cardid = Int64.Parse("615126");
+                }
+                catch
+                { MessageBox.Show("卡号不可为空或字母"); return 1; }
+                lf[0].empno = "615126";//tbEmpno.Text;
+                lf[0].empname = "马腾飞";//tbEmpname.Text;
+                                      //lf[0].subsidyformat = (int.Parse(tbSubsidyAmount.Text) * 100).ToString("X2").PadLeft(8, '0');
+                                      //lf[0].subsidyformat += Convert.ToString(int.Parse(tbSubsidyno.Text), 16).PadLeft(4, '0');
+                                      // lf[0].subsidyformat += "0"+ cbSubsidyType.SelectedIndex.ToString();
+                lf[0].subsidyformat += "00000000000000";// +cbSubsidyType.SelectedIndex.ToString();
+                lf[0].startsubsidy = "20170101";// tbstartsubsidy.Text;
+                lf[0].endsubsidy = "20991231";// tbendsubsidy.Text;
+                lf[0].amountend = "20191231";// tbamountend.Text;
+                lf[0].blackcount = int.Parse("0");//tbBlackCount.Text);
+                lf[0].listtype = 1;   //默认为白名单，可以不写此行代码
+                if (this.dlcManage.DownList(ip, lf) == 0)
+                {
+                    SetValue(DateTime.Now.ToString() + ":" + ip + "下载黑名单成功！");
+                    SaveLog(Application.StartupPath + "\\errorlog.txt", DateTime.Now.ToString() + ":" + ip + "下载黑名单成功！");
+                    result = 0;
+                }
+                else
+                {
+                    SetValue(DateTime.Now.ToString() + ":" + ip + "下载黑名单失败！");
+                    SaveLog(Application.StartupPath + "\\errorlog.txt", DateTime.Now.ToString() + ":" + ip + "下载黑名单失败！");
+                    result = -1;
+                }
+            }
+            catch (Exception ex)
+            {
+                //显示信息在textbox中
+                SetValue(string.Concat(new string[]
+                {
+                    DateTime.Now.ToString(),
+                    ":",
+                    ip,
+                    "下载黑名单失败:",
+                    ex.Message
+                }));
+                SaveLog(Application.StartupPath + "\\errorlog.txt", string.Concat(new string[]
+                {
+                    DateTime.Now.ToString(),
+                    ":",
+                    ip,
+                    "下载黑名单失败:",
+                    ex.Message
+                }));
+                result = -1;
+            }
+            return result;
+        }
         private void timer1_Tick(object sender, EventArgs e)
         {
+            BlackDownList("192.168.0.241:0");
             
-            richTextBox1.Text += "开始获取数据！！！！\r\n";
-            timer1.Enabled = false;
-            richTextBox1.Text += "时钟开始";
-            string[] records = dlcManage.GetRecords("192.168.0.240|4001:240", 0, 10, 0, true);
-            string[] records1 = dlcManage.GetRecords("192.168.0.241|4001:241", 0, 10, 0, false);
-            int[] rs = dlcManage.GetRecordInfo("192.168.0.241|4001:240");
-            string a = "最大可存数:" + rs[0].ToString();
-            string b = "已存记录数:" + rs[1].ToString();
-            //MessageBox.Show(a + ":" + b);
-            if (records.Length <= 0)
-            {
-                richTextBox1.Text+="240出现错误！\r\n";
-            }
-            if (records1.Length <= 0)
-            {
-                richTextBox1.Text += "241出现错误！\r\n";
-            }
-            for (int i = 0; i < records.Length; i++)
-            {
-                richTextBox1.Text += "240:" + records[i] + "\r\n";
-            }
-            for (int i = 0; i < records1.Length; i++)
-            {
-                richTextBox1.Text += "241:" + records1[i] + "\r\n";
-            }
+            BlackDownList("192.168.0.240:0001");
+            //richTextBox1.Text += "开始获取数据！！！！\r\n";
+            //timer1.Enabled = false;
+            //richTextBox1.Text += "时钟开始";
+            //string[] records = dlcManage.GetRecords("192.168.0.240|4001:240", 0, 10, 0, true);
+            //string[] records1 = dlcManage.GetRecords("192.168.0.241|4001:241", 0, 10, 0, false);
+            //int[] rs = dlcManage.GetRecordInfo("192.168.0.241|4001:240");
+            //string a = "最大可存数:" + rs[0].ToString();
+            //string b = "已存记录数:" + rs[1].ToString();
+            ////MessageBox.Show(a + ":" + b);
+            //if (records.Length <= 0)
+            //{
+            //    richTextBox1.Text+="240出现错误！\r\n";
+            //}
+            //if (records1.Length <= 0)
+            //{
+            //    richTextBox1.Text += "241出现错误！\r\n";
+            //}
+            //for (int i = 0; i < records.Length; i++)
+            //{
+            //    richTextBox1.Text += "240:" + records[i] + "\r\n";
+            //}
+            //for (int i = 0; i < records1.Length; i++)
+            //{
+            //    richTextBox1.Text += "241:" + records1[i] + "\r\n";
+            //}
 
-            timer1.Enabled = true;
-            richTextBox1.Text += "时钟结束";
+            //timer1.Enabled = true;
+            //richTextBox1.Text += "时钟结束";
         }
         delegate void ChangeTextBox(object obj);
 
@@ -116,40 +195,44 @@ namespace TestMachProject
         //更新心跳包
         private void dlcsocket_MachineDumped(string ip)
         {
+
             DataModify(dataList1, ip);
         }
         delegate void DataModifyDelegate(Comm.DataList datalist, string ip);
         private void DataModify(Comm.DataList datalist, string ip)
         {
-            SaveLog(Application.StartupPath + "\\errorlog.txt",ip);
-            if (datalist.InvokeRequired)
-            {
-                DataModifyDelegate d = DataModify;
-                datalist.Invoke(d, new object[] { datalist, ip });
-            }
-            else
-            {
-                for (int row = 0; row < datalist.Rows.Count; row++)
-                {
-                    if (datalist.Rows[row].Cells["ipaddr"].Value.ToString() == ip)
-                    {
-                        int count;
-                        if (datalist.Rows[row].Cells["dumpcount"].Value == null)
-                            count = 0;
-                        else
-                            count = int.Parse(datalist.Rows[row].Cells["dumpcount"].Value.ToString());
-                        count += 1;
-                        datalist.Rows[row].Cells["dumpcount"].Value = count;
-                        datalist.Rows[row].Cells["lastdump"].Value = DateTime.Now;
-                        return;
-                    }
-                }
-                int r = datalist.Rows.Add();
-                datalist.Rows[r].Cells["ipaddr"].Value = ip;
-                datalist.Rows[r].Cells["dumpcount"].Value = 1;
-                datalist.Rows[r].Cells["lastdump"].Value = DateTime.Now;
-            }
+            SetValue("心跳数据："+ip);
+            //if (datalist.InvokeRequired)
+            //{
+            //    DataModifyDelegate d = DataModify;
+            //    datalist.Invoke(d, new object[] { datalist, ip });
+            //}
+            //else
+            //{
+            //    for (int row = 0; row < datalist.Rows.Count; row++)
+            //    {
+            //        if (datalist.Rows[row].Cells["ipaddr"].Value.ToString() == ip)
+            //        {
+            //            int count;
+            //            if (datalist.Rows[row].Cells["dumpcount"].Value == null)
+            //                count = 0;
+            //            else
+            //                count = int.Parse(datalist.Rows[row].Cells["dumpcount"].Value.ToString());
+            //            count += 1;
+            //            datalist.Rows[row].Cells["dumpcount"].Value = count;
+            //            datalist.Rows[row].Cells["lastdump"].Value = DateTime.Now;
+            //            return;
+            //        }
+            //    }
+            //    int r = datalist.Rows.Add();
+            //    datalist.Rows[r].Cells["ipaddr"].Value = ip;
+            //    datalist.Rows[r].Cells["dumpcount"].Value = 1;
+            //    datalist.Rows[r].Cells["lastdump"].Value = DateTime.Now;
+            //}
         }
+        private void dlcsocket_MachineLoged(string ip, int loged)
+        {
+        }  //ok
         delegate void SetItemValueDelegate(Comm.DataList datalist, string item, int row, string value);
         private void SetItemValue(Comm.DataList datalist, string item, int row, string value)
         {
@@ -169,11 +252,191 @@ namespace TestMachProject
                 datalist.Rows[row].Cells[item].Value = value;
             }
         }
+        //IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 8004);
+        //MachineCtro dlcDown = null;
         void start()
         {
-            //dlcManage.MachineDumped += new MachineCtro.MachineDump(dlcsocket_MachineDumped);
+            dlcManage.MachineDumped += new MachineCtro.MachineDump(dlcsocket_MachineDumped);
             dlcManage.DataReceived += new MachineCtro.MachineDataReceived(DataReceived);
-            //dlcsocket_MachineDumped("192.168.0.240");
+            dlcManage.MachineLoged += new MachineCtro.MachineLogoned(dlcsocket_MachineLoged);
+            dlcManage.QueryApplyed += new MachineCtro.QueryApply(dlcsocket_QueryApplyed);
+            dlcManage.ReceivedError += new MachineCtro.MachineDataReceivedError(ReceivedError);
+            //dlcManage.PhotoReceivedX += this.dlcsocket_PhotoReceivedX;
+            //dlcManage.CardBlashedIC += new MachineCtro.MachineCardBlashedIC(CardBlashedIC);
+            initBlackTicker();
+        }
+        private System.Timers.Timer tDownList = new System.Timers.Timer();
+        public void initBlackTicker()
+        {
+            IPEndPoint point = new IPEndPoint(IPAddress.Parse("172.18.1.238"),8007);
+            this.dlcCtro = new MachineCtro(point);
+            this.tDownList.Enabled = true;
+            this.tDownList.Interval = 5000.0;
+            this.tDownList.Elapsed += new ElapsedEventHandler(this.BlacktickerBase);
+        }
+        public void BlacktickerBase(object sender, EventArgs e)
+        {
+            this.tDownList.Stop();
+            this.tDownList.Enabled = false;
+            this.tDownList_Tick();
+            this.tDownList.Enabled = true;
+            this.tDownList.Start();
+        }
+        private void tDownList_Tick()
+        {
+            string ipaddr = "172.18.1.111:0010";
+            int num = this.DownBlackList(ipaddr);
+            if (num == 1)
+            {
+                SetValue("机器16不可用"+ipaddr);
+            }
+            string ipaddr1 = "172.18.1.112:0011";
+            int num1 = DownBlackList(ipaddr1);
+            if (num1 == 1)
+            {
+                SetValue("机器17不可用" + ipaddr1);
+            }
+        }
+    private int DownBlackList(string ip)
+    {
+            int flag = -2;
+            flag = dlcCtro.SetTime(ip);
+            SetValue(flag.ToString());
+        string text = null;
+        try
+        {
+            text = this.dlcCtro.GetTime(ip);
+        }
+        catch (Exception e)
+        {
+                SetValue("错误："+e.Message);
+            return 0;
+        }
+        if (text == null)
+        {
+                SetValue("text为空"+ip);
+            return 1;
+        }
+        int result;
+        try
+        {
+                MachineCtro.ListField[] lf = new MachineCtro.ListField[1];
+                try
+                {
+                    lf[0].cardid = Int64.Parse("615126");
+                }
+                catch
+                { MessageBox.Show("卡号不可为空或字母"); return 1; }
+                lf[0].empno = "615126";//tbEmpno.Text;
+                lf[0].empname = "马腾飞";//tbEmpname.Text;
+                                      //lf[0].subsidyformat = (int.Parse(tbSubsidyAmount.Text) * 100).ToString("X2").PadLeft(8, '0');
+                                      //lf[0].subsidyformat += Convert.ToString(int.Parse(tbSubsidyno.Text), 16).PadLeft(4, '0');
+                                      // lf[0].subsidyformat += "0"+ cbSubsidyType.SelectedIndex.ToString();
+                lf[0].subsidyformat += "00000000000000";// +cbSubsidyType.SelectedIndex.ToString();
+                lf[0].startsubsidy = "20170101";// tbstartsubsidy.Text;
+                lf[0].endsubsidy = "20991231";// tbendsubsidy.Text;
+                lf[0].amountend = "20191231";// tbamountend.Text;
+                lf[0].blackcount = int.Parse("0");//tbBlackCount.Text);
+                lf[0].listtype = 1;   //默认为白名单，可以不写此行代码
+                if (this.dlcCtro.DownList(ip, lf) == 0)
+            {
+                    SetValue(DateTime.Now.ToString() + ":" + ip + "下载黑名单成功！");
+                SaveLog(Application.StartupPath + "\\errorlog.txt", DateTime.Now.ToString() + ":" + ip + "下载黑名单成功！");
+                result = 0;
+            }
+            else
+            {
+                    SetValue(DateTime.Now.ToString() + ":" + ip + "下载黑名单失败！");
+                SaveLog(Application.StartupPath + "\\errorlog.txt", DateTime.Now.ToString() + ":" + ip + "下载黑名单失败！");
+                result = -1;
+            }
+        }
+        catch (Exception ex)
+        {
+                SetValue(string.Concat(new string[]
+            {
+                    DateTime.Now.ToString(),
+                    ":",
+                    ip,
+                    "下载黑名单失败:",
+                    ex.Message
+            }));
+            SaveLog(Application.StartupPath + "\\errorlog.txt", string.Concat(new string[]
+            {
+                    DateTime.Now.ToString(),
+                    ":",
+                    ip,
+                    "下载黑名单失败:",
+                    ex.Message
+            }));
+            result = -1;
+        }
+        return result;
+    }
+    private void dlcsocket_PhotoReceivedX(int flowno)
+        {
+        }
+        private int dlcsocket_QueryApplyed(string ip, ref int[] row, ref int[] col, ref string[] message, ref int seconds)
+        {
+            return 0;
+            //string sqlstring = "Data Source=" + tbServer.Text + ";Database=" + tbDatabase.Text + ";User id=" + tbLogID.Text + ";PWD=" + tbLogPass.Text;
+            //if (nosql != "1")
+            //{
+            //    SqlConnection sql = new SqlConnection(sqlstring);
+            //    sql.Open();
+            //    sqlstring = "exec sp_queryapplyed '" + ip + "'";
+            //    SqlDataAdapter SQLda = new SqlDataAdapter(sqlstring, sql);
+            //    DataSet ds = new DataSet();
+            //    SQLda.Fill(ds);
+            //    sql.Close();
+            //    if (ds.Tables[0].Rows[0][0].ToString() == "1")
+            //    {//存储过程执行正确记录此次调用
+            //        int count = (ds.Tables[0].Columns.Count - 2) / 3;
+            //        row = new int[count];
+            //        col = new int[count];
+            //        message = new string[count];
+            //        for (int i = 0; i < count; i++)
+            //        {
+            //            row[i] = int.Parse(ds.Tables[0].Rows[0][i * 3 + 2].ToString());
+            //            col[i] = int.Parse(ds.Tables[0].Rows[0][i * 3 + 3].ToString());
+            //            message[i] = ds.Tables[0].Rows[0][i * 3 + 4].ToString();
+            //        }
+            //        seconds = int.Parse(ds.Tables[0].Rows[0][1].ToString());
+            //        path = Application.StartupPath + "\\sqloklog.txt";
+            //        SaveLog(path, DateTime.Now.ToString() + ":" + sqlstring);
+            //        return 0;
+            //    }
+            //    else
+            //    {//存储过程执行返回错误记录此次调用
+            //        path = Application.StartupPath + "\\sqlerrorlog.txt";
+            //        SaveLog(path, DateTime.Now.ToString() + ":" + sqlstring);
+            //        return 1;
+            //    }
+            //}
+            //else
+            //{
+            //    int count = 2;
+            //    row = new int[count];
+            //    col = new int[count];
+            //    message = new string[count];
+            //    row[0] = 4;
+            //    col[1] = 128;
+            //    message[0] = "在线无数据";
+            //    row[1] = 6;
+            //    col[0] = 128;
+            //    message[1] = "查询成功";
+            //    seconds = 10;
+            //    return 1;
+            //}
+        }
+        private void ReceivedError(string errmsg)
+        {
+            try
+            {
+                string path = Application.StartupPath + "\\errorlog.txt";
+                SaveLog(path, DateTime.Now.ToString() + ":" + errmsg);
+            }
+            catch { }
         }
         private bool DataReceived(string data)
         {
@@ -356,39 +619,55 @@ namespace TestMachProject
 
         private void button2_Click(object sender, EventArgs e)
         {
-            dlcManage = new MachineCtro(point);
-            MachineCtro.ListField[] lf = new MachineCtro.ListField[1];
-            MachineCtro.ListStoreFormat temp = new MachineCtro.ListStoreFormat();
-            start();
-            temp = dlcManage.GetListStoredFormat("192.168.0.240:4001:240");
-            SetValue(temp.len+":"+temp.format);
+            //dlcManage.MachineDumped += new MachineCtro.MachineDump(dlcsocket_MachineDumped);
+            //dlcManage.DataReceived += new MachineCtro.MachineDataReceived(DataReceived);
+            IPEndPoint point = new IPEndPoint(IPAddress.Parse("172.18.1.238"), 8007);
+            this.dlcCtro = new MachineCtro(point);
+            DeleteBlackList("172.18.1.111:0010",615126);
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            System.Environment.Exit(0);//彻底关闭进程
+        }
+        private int DeleteBlackList(string ip,long cardno)
+        {
+
+            bool flag = false;
+            
+            string text = null;
             try
             {
-                lf[0].cardid = Int64.Parse("615126");
+                text = this.dlcCtro.GetTime(ip);
             }
-            catch
-            { MessageBox.Show("卡号不可为空或字母"); return; }
-            lf[0].empno = "615126";//tbEmpno.Text;
-            lf[0].empname = "马腾飞";//tbEmpname.Text;
-                                    //lf[0].subsidyformat = (int.Parse(tbSubsidyAmount.Text) * 100).ToString("X2").PadLeft(8, '0');
-                                    //lf[0].subsidyformat += Convert.ToString(int.Parse(tbSubsidyno.Text), 16).PadLeft(4, '0');
-                                    // lf[0].subsidyformat += "0"+ cbSubsidyType.SelectedIndex.ToString();
-            lf[0].subsidyformat += "00000000000000";// +cbSubsidyType.SelectedIndex.ToString();
-            lf[0].startsubsidy = "20170101";// tbstartsubsidy.Text;
-            lf[0].endsubsidy = "20991231";// tbendsubsidy.Text;
-            lf[0].amountend = "20191231";// tbamountend.Text;
-            lf[0].blackcount = int.Parse("0");//tbBlackCount.Text);
-            lf[0].listtype = 1;   //默认为白名单，可以不写此行代码
-            
-            int r = dlcManage.DownList("192.168.0.240:240", lf);
-            //if (r == 0)
-            //{
-            //    SetValue( "下载hei名单成功！");
-            //}
-            //else
-            //{
-            //    SetValue( "下载白名单失败！");
-            //}
+            catch (Exception e)
+            {
+                SetValue("错误：" + e.Message);
+                return 0;
+            }
+            if (text == null)
+            {
+                SetValue("text为空" + ip);
+                return 1;
+            }
+            try
+            {
+                flag = dlcCtro.DeleteBlackList(ip,cardno);
+                if (flag)
+                {
+                    SetValue("解挂成功：" + ip);
+                }
+                else
+                {
+                    SetValue("解挂失败："+ip);
+                }
+            }
+            catch (Exception e)
+            {
+                SetValue("解挂错误："+e.Message);
+                return 1;
+            }
+            return 0;
         }
     }
 }

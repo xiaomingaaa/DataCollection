@@ -18,7 +18,7 @@ namespace MealCardCollection.Controller
         private List<XfDataEntity> Query()
         {
             List<XfDataEntity> lists = new List<XfDataEntity>();
-            string sqlText = "select top 10 * from dlc_upload where is_upload=0";
+            string sqlText = "select top 20 * from dlc_upload where is_upload=0";
             DataTable table = SQLHelper.GetAllResult(sqlText);
             if (table.Rows.Count > 0)
             {

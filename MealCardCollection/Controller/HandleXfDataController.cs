@@ -24,7 +24,7 @@ namespace MealCardCollection.Controller
         public List<XfDataEntity> GetXfDatas()
         {
             List<XfDataEntity> datas = new List<XfDataEntity>();
-            string sqlText = "select *  from dlc_upload where is_upload=0 and created like '"+DateTime.Now.ToString("yyyy-MM-dd")+"%' ";
+            string sqlText = "select *  from dlc_upload where  created like '"+DateTime.Now.ToString("yyyy-MM-dd")+"%'  ";
             DataTable dataTable = new DataTable();
             dataTable = SQLHelper.GetAllResult(sqlText);
             if (dataTable.Rows.Count > 0)
@@ -44,9 +44,15 @@ namespace MealCardCollection.Controller
             IPEndPoint point = new IPEndPoint(IPAddress.Any,Convert.ToInt32(ConfigUtil.GetLocalConfig().Machport));
             dlcManage = new MachineCtro(point);
             dlcManage.DataReceived += new MachineCtro.MachineDataReceived(DataReceived);
+            dlcManage.MachineDumped += new MachineCtro.MachineDump(dlcsocket_MachineDumped);
+        }
+        private void dlcsocket_MachineDumped(string ip)
+        {
+            Log.WriteDumpData(ip);
         }
         private bool DataReceived(string data)
         {
+            bool flag = false;
             try
             {
                 //先保存接收到的原始数据
@@ -147,10 +153,81 @@ namespace MealCardCollection.Controller
                         serno = items[i].Substring(6);
                     }
                 }
-                string sendmsg = cardid + "," + ip + ","+datetime+","+result+","+dealtype+","+before+","+occur+","+after+","+mdno+","+cdno+","+status+","+serno+","+macno;
-                XfDataEntity dataEntity = new XfDataEntity(sendmsg,0,DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"),0);
-                SaveToLocalDB(dataEntity);
-                return true;
+                string presedure = string.Concat(new string[]
+                    {
+                        "exec sp_consumdatareceived '",
+                        cardid,
+                        "','",
+                        ip,
+                        "','",
+                        datetime,
+                        "',",
+                        result,
+                        ",",
+                        dealtype,
+                        ",",
+                        before,
+                        ",",
+                        occur,
+                        ",",
+                        after,
+                        ",",
+                        mdno,
+                        ",",
+                        cdno,
+                        ",",
+                        status,
+                        ",'",
+                        serno,
+                        "',",
+                        macno
+                    });
+                object obj = SQLHelper.GetOneResult(presedure);
+                string _result = "";
+                if (obj != null)
+                {
+                    _result =Convert.ToString(obj);
+                }
+                if (_result == "1")
+                {
+                    string local_base_data_ = presedure.Replace("exec sp_consumdatareceived ", "");
+                    string local_base_data = local_base_data_.Replace("'", "");
+                    string insertText= string.Concat(new string[]
+                    {
+                            "insert dlc_upload (info,created,is_upload) values ('",
+                            local_base_data,
+                            "','",
+                            DateTime.Now.ToString(),
+                            "','0')"
+                    });
+                    SQLHelper.Update(insertText);
+                    flag = true;
+                }
+                else if (_result == "2")
+                {
+                    flag = true;
+                }
+                else
+                {
+                    Log.WriteIgnoreData(presedure);
+                    flag = false;
+                }
+
+                //string sendmsg = cardid + "," + ip + ","+datetime+","+result+","+dealtype+","+before+","+occur+","+after+","+mdno+","+cdno+","+status+","+serno+","+macno;
+                //XfDataEntity dataEntity = new XfDataEntity(sendmsg,0,DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"),0);
+                //SaveToLocalDB(dataEntity);
+                //string sqlText1 = "select empno,empname,deptname,kqtime from hr_employee where cardnum="+cardid;
+                //DataTable table = SQLHelper.GetAllResult(sqlText1);
+                //if (table.Rows.Count > 0)
+                //{
+                //    DataRow dr = table.Rows[0];
+                //    string empno = dr["empno"].ToString();
+                //    string empname = dr["empname"].ToString();
+                //    string deptname = dr["deptname"].ToString();
+                //    string kqtime = dr["kqtime"].ToString();
+                //    string insertText = "insert into dlc_record_xf(empno,empname,deptname,phyid,ipaddr,skdate,sktime,premoney,xfmoney,aftmoney,xfcode,rtype,empuid,macuid,remark,logname,logtime,result,tstatus,snumber,macbh,xftime)";
+                //}
+                return flag;
                     
             }
             catch (Exception ex)
@@ -161,6 +238,7 @@ namespace MealCardCollection.Controller
         }
         private void SaveToLocalDB(XfDataEntity dataEntity)
         {
+            //暂时不用，因为存在存储过程
             string sqlText =string.Format("insert into dlc_upload(info,created,is_upload) values('{0}','{1}',{2})",dataEntity.Info,dataEntity.Xftime,dataEntity.Isupload);
             int flag= SQLHelper.Update(sqlText);
             if (flag <= 0)

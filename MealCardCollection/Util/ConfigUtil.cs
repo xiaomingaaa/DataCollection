@@ -13,14 +13,14 @@ namespace MealCardCollection.Util
     {
         public static LocalConfigEntity GetLocalConfig()
         {
-            string[] values = new string[5];
+            string[] values = new string[6];
             string path = AppDomain.CurrentDomain.BaseDirectory + @"\config.ini";
-            string[] keys = { "Server", "Database", "Username", "Password", "Machport" };
+            string[] keys = { "Server", "Database", "Username", "Password", "Machport", "LocalIP" };
             for (int i = 0; i < keys.Length; i++)
             {
                 values[i] = Readini.ReadIniFile("LocalConfig", keys[i], path);
             }
-            LocalConfigEntity local = new LocalConfigEntity(values[0],values[1],values[2],values[3],values[4]);
+            LocalConfigEntity local = new LocalConfigEntity(values[0],values[1],values[2],values[3],values[4],values[5]);
             return local;
         }
         public static RemoteConfigEntity GetRemoteConfig()
